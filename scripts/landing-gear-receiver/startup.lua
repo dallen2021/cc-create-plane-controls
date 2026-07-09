@@ -3,7 +3,7 @@ local protocol = "plane_landing_gear"
 local cockpitId = 10
 local preferredGearshiftName = nil
 
-local rotateDegrees = 90
+local rotateDegrees = 180
 local downModifier = 1
 local upModifier = -1
 local defaultState = "up"

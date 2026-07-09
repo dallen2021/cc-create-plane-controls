@@ -107,7 +107,7 @@ Path:
 scripts/landing-gear-receiver/startup.lua
 ```
 
-Use this on landing gear computer `11`. It receives wireless commands from the cockpit computer and rotates the local Sequenced Gearshift by 90 degrees.
+Use this on landing gear computer `11`. It receives wireless commands from the cockpit computer and rotates the local Sequenced Gearshift by 180 degrees.
 
 Current wireless modem side:
 
@@ -124,7 +124,7 @@ local cockpitId = 10
 Current gear movement settings:
 
 ```lua
-local rotateDegrees = 90
+local rotateDegrees = 180
 local downModifier = 1
 local upModifier = -1
 local defaultState = "up"
