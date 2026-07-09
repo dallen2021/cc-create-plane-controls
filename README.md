@@ -122,6 +122,43 @@ local cargoMonitorName = "left"
 
 If a separate left-side monitor is attached, the cargo UI uses that whole monitor. If no separate side monitor is found, it falls back to section `3` of the wide 1x5 monitor.
 
+### Cargo Lift Top Controller
+
+Path:
+
+```text
+scripts/cargo-lift-top/startup.lua
+```
+
+Use this on top-panel computer `14`. It draws cargo lift controls in the left section of the 1x3 top monitor and sends wireless commands to the cargo receiver.
+
+Buttons:
+
+```text
+RAISE
+LOWER
+```
+
+Current wireless modem side:
+
+```lua
+local modemSide = "front"
+```
+
+Current cargo receiver:
+
+```lua
+local receiverId = 12
+```
+
+Current top monitor position:
+
+```lua
+local monitorName = "top"
+local monitorSection = 1
+local monitorSections = 3
+```
+
 ### Landing Gear Receiver
 
 Path:
@@ -163,7 +200,7 @@ Path:
 scripts/cargo-door-receiver/startup.lua
 ```
 
-Use this on the cargo door receiver computer. It receives wireless commands from cockpit computer `10` and rotates the local Sequenced Gearshift to raise/lower the rear cargo entrance.
+Use this on the cargo door receiver computer. It receives wireless commands from cockpit computer `10` and top-panel computer `14`, then rotates the local Sequenced Gearshift to raise/lower the rear cargo entrance.
 
 Current wireless modem side:
 
@@ -171,10 +208,10 @@ Current wireless modem side:
 local modemSide = "right"
 ```
 
-Current allowed cockpit computer:
+Current allowed cockpit computers:
 
 ```lua
-local cockpitId = 10
+local cockpitIds = { 10, 14 }
 ```
 
 Current cargo movement settings:
@@ -229,6 +266,13 @@ wget https://raw.githubusercontent.com/dallen2021/cc-create-plane-controls/main/
 reboot
 ```
 
+Cargo lift top controller, for computer `14`:
+
+```lua
+wget https://raw.githubusercontent.com/dallen2021/cc-create-plane-controls/main/scripts/cargo-lift-top/startup.lua startup.lua
+reboot
+```
+
 Landing gear receiver, for computer `11`:
 
 ```lua
@@ -261,6 +305,8 @@ computer 11 + wireless modem on right + local gearshift peripheral
         rotates landing gear bearing
 computer 12 + wireless modem on right + local gearshift peripheral
         rotates rear cargo entrance bearing
+computer 14 + 1x3 top monitor + wireless modem on front
+        sends cargo lift commands from the left top-monitor section
 ```
 
 ## Useful Commands

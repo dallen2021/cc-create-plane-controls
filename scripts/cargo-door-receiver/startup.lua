@@ -1,6 +1,6 @@
 local modemSide = "right"
 local protocol = "plane_cargo_door"
-local cockpitId = 10
+local cockpitIds = { 10, 14 }
 local preferredGearshiftName = nil
 
 local rotateDegrees = 90
@@ -88,13 +88,23 @@ local function reply(receiverId, message)
   rednet.send(receiverId, message, protocol)
 end
 
+local function isAllowedCockpit(sender)
+  for _, cockpitId in ipairs(cockpitIds) do
+    if sender == cockpitId then
+      return true
+    end
+  end
+
+  return false
+end
+
 local function drawStatus(gearshiftName, state, message)
   term.clear()
   term.setCursorPos(1, 1)
   print("Cargo door receiver")
   print("Computer ID: " .. os.getComputerID())
   print("Wireless: " .. modemSide)
-  print("Cockpit ID: " .. cockpitId)
+  print("Cockpit IDs: " .. table.concat(cockpitIds, ", "))
   print("Gearshift: " .. gearshiftName)
   print("State: " .. state)
   print("Protocol: " .. protocol)
@@ -116,7 +126,7 @@ drawStatus(gearshiftName, currentState)
 while true do
   local sender, message = rednet.receive(protocol)
 
-  if sender ~= cockpitId then
+  if not isAllowedCockpit(sender) then
     drawStatus(gearshiftName, currentState, "Ignored command from #" .. sender)
   elseif message == "status" then
     reply(sender, "cargo_" .. currentState)
