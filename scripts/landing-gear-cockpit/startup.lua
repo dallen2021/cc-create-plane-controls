@@ -1,8 +1,16 @@
 local modemSide = "right"
-local receiverId = 11
-local protocol = "plane_landing_gear"
-local monitorSection = 2
-local monitorSections = 5
+
+local landingReceiverId = 11
+local landingProtocol = "plane_landing_gear"
+local landingMonitorName = nil
+local landingMonitorSection = 2
+local landingMonitorSections = 5
+
+local cargoReceiverId = 12
+local cargoProtocol = "plane_cargo_door"
+local cargoMonitorName = "left"
+local cargoFallbackSection = 3
+local cargoFallbackSections = 5
 
 local function hasType(name, wanted)
   if peripheral.hasType then
@@ -12,12 +20,68 @@ local function hasType(name, wanted)
   return peripheral.getType(name) == wanted
 end
 
-local function findMonitor()
+local function getMonitor(name)
+  if name and hasType(name, "monitor") then
+    return name, peripheral.wrap(name)
+  end
+end
+
+local function getMonitorNames()
+  local names = {}
   for _, name in ipairs(peripheral.getNames()) do
     if hasType(name, "monitor") then
-      return name, peripheral.wrap(name)
+      table.insert(names, name)
     end
   end
+
+  return names
+end
+
+local function findWideMonitor()
+  local preferredName, preferred = getMonitor(landingMonitorName)
+  if preferred then
+    return preferredName, preferred
+  end
+
+  local bestName
+  local bestMonitor
+  local bestWidth = -1
+
+  for _, name in ipairs(getMonitorNames()) do
+    local monitor = peripheral.wrap(name)
+    monitor.setTextScale(0.5)
+    local width = monitor.getSize()
+
+    if width > bestWidth then
+      bestName = name
+      bestMonitor = monitor
+      bestWidth = width
+    end
+  end
+
+  return bestName, bestMonitor
+end
+
+local function findCargoMonitor(landingName, landingMonitor)
+  local preferredName, preferred = getMonitor(cargoMonitorName)
+  if preferred and preferredName ~= landingName then
+    return preferredName, preferred, 1, 1
+  end
+
+  for _, name in ipairs({ "left", "top", "bottom", "front", "back", "right" }) do
+    local monitorName, monitor = getMonitor(name)
+    if monitor and monitorName ~= landingName then
+      return monitorName, monitor, 1, 1
+    end
+  end
+
+  for _, name in ipairs(getMonitorNames()) do
+    if name ~= landingName then
+      return name, peripheral.wrap(name), 1, 1
+    end
+  end
+
+  return landingName, landingMonitor, cargoFallbackSection, cargoFallbackSections
 end
 
 local function requireWirelessModem(side)
@@ -33,66 +97,81 @@ local function requireWirelessModem(side)
   rednet.open(side)
 end
 
-local monitorName, monitor = findMonitor()
-if not monitor then
-  error("No monitor found. Attach an Advanced Monitor to this cockpit computer.")
-end
-
-requireWirelessModem(modemSide)
-
-monitor.setTextScale(0.5)
-monitor.setCursorBlink(false)
-
-local buttons = {
-  { label = "GEAR UP", command = "up" },
-  { label = "GEAR DOWN", command = "down" },
+local controls = {
+  landing = {
+    title = { "LANDING", "GEAR" },
+    receiverId = landingReceiverId,
+    protocol = landingProtocol,
+    statePrefix = "gear",
+    section = landingMonitorSection,
+    sections = landingMonitorSections,
+    buttons = {
+      { label = "GEAR UP", command = "up" },
+      { label = "GEAR DOWN", command = "down" },
+    },
+    state = "unknown",
+    status = "Ready",
+    activeCommand = nil,
+    buttonAreas = {},
+  },
+  cargo = {
+    title = { "CARGO", "DOOR" },
+    receiverId = cargoReceiverId,
+    protocol = cargoProtocol,
+    statePrefix = "cargo",
+    section = 1,
+    sections = 1,
+    buttons = {
+      { label = "RAISE", command = "up" },
+      { label = "LOWER", command = "down" },
+    },
+    state = "unknown",
+    status = "Ready",
+    activeCommand = nil,
+    buttonAreas = {},
+  },
 }
 
-local buttonAreas = {}
-local status = "Ready"
-local lastState = "unknown"
-local activeCommand = nil
-
-local function getPanelBounds()
-  local width = monitor.getSize()
-  local sections = math.max(1, monitorSections)
-  local section = math.min(math.max(1, monitorSection), sections)
-  local sectionWidth = math.max(1, math.floor(width / sections))
-  local x1 = math.min(width, ((section - 1) * sectionWidth) + 1)
-  local x2 = section == sections and width or section * sectionWidth
+local function getPanelBounds(display, section, sections)
+  local width = display.getSize()
+  local safeSections = math.max(1, sections)
+  local safeSection = math.min(math.max(1, section), safeSections)
+  local sectionWidth = math.max(1, math.floor(width / safeSections))
+  local x1 = math.min(width, ((safeSection - 1) * sectionWidth) + 1)
+  local x2 = safeSection == safeSections and width or safeSection * sectionWidth
 
   return x1, math.max(x1, x2)
 end
 
-local function clearPanel(x1, x2)
-  local _, height = monitor.getSize()
-  monitor.setBackgroundColor(colors.black)
+local function clearPanel(display, x1, x2)
+  local _, height = display.getSize()
+  display.setBackgroundColor(colors.black)
   for y = 1, height do
-    monitor.setCursorPos(x1, y)
-    monitor.write(string.rep(" ", x2 - x1 + 1))
+    display.setCursorPos(x1, y)
+    display.write(string.rep(" ", x2 - x1 + 1))
   end
 end
 
-local function centerWriteIn(x1, x2, y, text, fg, bg)
+local function centerWriteIn(display, x1, x2, y, text, fg, bg)
   local width = x2 - x1 + 1
   local clipped = string.sub(text, 1, width)
-  monitor.setTextColor(fg or colors.white)
-  monitor.setBackgroundColor(bg or colors.black)
-  monitor.setCursorPos(x1 + math.max(0, math.floor((width - #clipped) / 2)), y)
-  monitor.write(clipped)
+  display.setTextColor(fg or colors.white)
+  display.setBackgroundColor(bg or colors.black)
+  display.setCursorPos(x1 + math.max(0, math.floor((width - #clipped) / 2)), y)
+  display.write(clipped)
 end
 
-local function fill(x1, y1, x2, y2, color)
-  monitor.setBackgroundColor(color)
+local function fill(display, x1, y1, x2, y2, color)
+  display.setBackgroundColor(color)
   for y = y1, y2 do
-    monitor.setCursorPos(x1, y)
-    monitor.write(string.rep(" ", math.max(0, x2 - x1 + 1)))
+    display.setCursorPos(x1, y)
+    display.write(string.rep(" ", math.max(0, x2 - x1 + 1)))
   end
 end
 
-local function layoutButtons()
-  local _, height = monitor.getSize()
-  local panelX1, panelX2 = getPanelBounds()
+local function layoutButtons(control)
+  local _, height = control.monitor.getSize()
+  local panelX1, panelX2 = getPanelBounds(control.monitor, control.section, control.sections)
   local gap = height >= 7 and 1 or 0
   local top = height >= 8 and 4 or 3
   local statusLine = height
@@ -103,152 +182,193 @@ local function layoutButtons()
   local firstY2 = math.min(statusLine - 1, top + buttonHeight - 1)
   local secondY1 = math.min(statusLine - 1, firstY2 + gap + 1)
 
-  buttonAreas = {
+  control.buttonAreas = {
     {
       x1 = innerX1,
       y1 = top,
       x2 = innerX2,
       y2 = firstY2,
-      label = buttons[1].label,
-      command = buttons[1].command,
+      label = control.buttons[1].label,
+      command = control.buttons[1].command,
     },
     {
       x1 = innerX1,
       y1 = secondY1,
       x2 = innerX2,
       y2 = math.min(statusLine - 1, secondY1 + buttonHeight - 1),
-      label = buttons[2].label,
-      command = buttons[2].command,
+      label = control.buttons[2].label,
+      command = control.buttons[2].command,
     },
   }
 end
 
-local function drawButton(area)
+local function drawButton(control, area)
   local bg = colors.gray
-  if activeCommand == area.command then
+  if control.activeCommand == area.command then
     bg = colors.orange
-  elseif lastState == area.command then
+  elseif control.state == area.command then
     bg = colors.green
   end
 
-  fill(area.x1, area.y1, area.x2, area.y2, bg)
+  fill(control.monitor, area.x1, area.y1, area.x2, area.y2, bg)
 
   local width = area.x2 - area.x1 + 1
   local label = string.sub(area.label, 1, width)
   local x = area.x1 + math.floor((width - #label) / 2)
   local y = area.y1 + math.floor((area.y2 - area.y1) / 2)
-  monitor.setCursorPos(x, y)
-  monitor.setTextColor(colors.white)
-  monitor.setBackgroundColor(bg)
-  monitor.write(label)
+  control.monitor.setCursorPos(x, y)
+  control.monitor.setTextColor(colors.white)
+  control.monitor.setBackgroundColor(bg)
+  control.monitor.write(label)
 end
 
-local function draw()
-  local _, height = monitor.getSize()
-  local panelX1, panelX2 = getPanelBounds()
-  local panelWidth = panelX2 - panelX1 + 1
-  clearPanel(panelX1, panelX2)
+local function drawControl(control)
+  if not control.monitor then
+    return
+  end
 
-  centerWriteIn(panelX1, panelX2, 1, "LANDING", colors.yellow, colors.black)
-  centerWriteIn(panelX1, panelX2, 2, "GEAR", colors.yellow, colors.black)
+  control.monitor.setTextScale(0.5)
+  control.monitor.setCursorBlink(false)
+
+  local _, height = control.monitor.getSize()
+  local panelX1, panelX2 = getPanelBounds(control.monitor, control.section, control.sections)
+  local panelWidth = panelX2 - panelX1 + 1
+  clearPanel(control.monitor, panelX1, panelX2)
+
+  centerWriteIn(control.monitor, panelX1, panelX2, 1, control.title[1], colors.yellow, colors.black)
+  centerWriteIn(control.monitor, panelX1, panelX2, 2, control.title[2], colors.yellow, colors.black)
 
   if height >= 8 then
-    centerWriteIn(panelX1, panelX2, 3, "State " .. string.upper(lastState), colors.lime, colors.black)
+    centerWriteIn(control.monitor, panelX1, panelX2, 3, "State " .. string.upper(control.state), colors.lime, colors.black)
   end
 
-  layoutButtons()
-  for _, area in ipairs(buttonAreas) do
-    drawButton(area)
+  layoutButtons(control)
+  for _, area in ipairs(control.buttonAreas) do
+    drawButton(control, area)
   end
 
-  monitor.setCursorPos(panelX1, height)
-  monitor.setBackgroundColor(colors.black)
-  monitor.setTextColor(colors.cyan)
-  monitor.write(string.rep(" ", panelWidth))
-  monitor.setCursorPos(panelX1, height)
-  monitor.write(string.sub(status, 1, panelWidth))
+  control.monitor.setCursorPos(panelX1, height)
+  control.monitor.setBackgroundColor(colors.black)
+  control.monitor.setTextColor(colors.cyan)
+  control.monitor.write(string.rep(" ", panelWidth))
+  control.monitor.setCursorPos(panelX1, height)
+  control.monitor.write(string.sub(control.status, 1, panelWidth))
+end
+
+local function drawAll()
+  drawControl(controls.landing)
+  drawControl(controls.cargo)
+end
+
+local function resolveMonitors()
+  local landingName, landingMonitor = findWideMonitor()
+  if not landingMonitor then
+    error("No monitor found. Attach an Advanced Monitor to this cockpit computer.")
+  end
+
+  local cargoName, cargoMonitor, cargoSection, cargoSections = findCargoMonitor(landingName, landingMonitor)
+
+  controls.landing.monitorName = landingName
+  controls.landing.monitor = landingMonitor
+  controls.landing.section = landingMonitorSection
+  controls.landing.sections = landingMonitorSections
+
+  controls.cargo.monitorName = cargoName
+  controls.cargo.monitor = cargoMonitor
+  controls.cargo.section = cargoSection
+  controls.cargo.sections = cargoSections
 end
 
 local function isInside(area, x, y)
   return x >= area.x1 and x <= area.x2 and y >= area.y1 and y <= area.y2
 end
 
-local function sendGearCommand(command)
-  activeCommand = command
-  status = "Sending " .. string.upper(command)
-  rednet.send(receiverId, command, protocol)
-  draw()
+local function sendCommand(control, command)
+  control.activeCommand = command
+  control.status = "Sending " .. string.upper(command)
+  rednet.send(control.receiverId, command, control.protocol)
+  drawControl(control)
 end
 
-local function handleReceiverMessage(message)
+local function handleReceiverMessage(control, message)
   if type(message) ~= "string" then
     return
   end
 
-  if message == "gear_up" then
-    lastState = "up"
-    activeCommand = nil
-    status = "Gear is UP"
-  elseif message == "gear_down" then
-    lastState = "down"
-    activeCommand = nil
-    status = "Gear is DOWN"
+  if message == control.statePrefix .. "_up" then
+    control.state = "up"
+    control.activeCommand = nil
+    control.status = "State UP"
+  elseif message == control.statePrefix .. "_down" then
+    control.state = "down"
+    control.activeCommand = nil
+    control.status = "State DOWN"
   elseif message == "already_up" then
-    lastState = "up"
-    activeCommand = nil
-    status = "Already UP"
+    control.state = "up"
+    control.activeCommand = nil
+    control.status = "Already UP"
   elseif message == "already_down" then
-    lastState = "down"
-    activeCommand = nil
-    status = "Already DOWN"
+    control.state = "down"
+    control.activeCommand = nil
+    control.status = "Already DOWN"
   elseif message == "moving_up" then
-    status = "Moving UP"
+    control.status = "Moving UP"
   elseif message == "moving_down" then
-    status = "Moving DOWN"
+    control.status = "Moving DOWN"
   elseif message == "busy" then
-    activeCommand = nil
-    status = "Receiver busy"
+    control.activeCommand = nil
+    control.status = "Receiver busy"
   elseif string.sub(message, 1, 6) == "error:" then
-    activeCommand = nil
-    status = message
+    control.activeCommand = nil
+    control.status = message
   else
-    status = "Receiver: " .. message
+    control.status = "Receiver: " .. message
   end
 
-  draw()
+  drawControl(control)
 end
 
-draw()
-rednet.send(receiverId, "status", protocol)
+local function handleTouch(monitorName, x, y)
+  for _, control in pairs(controls) do
+    if control.monitorName == monitorName then
+      for _, area in ipairs(control.buttonAreas) do
+        if isInside(area, x, y) then
+          sendCommand(control, area.command)
+          return
+        end
+      end
+    end
+  end
+end
+
+local function handleRednet(sender, message, protocol)
+  for _, control in pairs(controls) do
+    if sender == control.receiverId and protocol == control.protocol then
+      handleReceiverMessage(control, message)
+      return
+    end
+  end
+end
+
+requireWirelessModem(modemSide)
+resolveMonitors()
+drawAll()
+
+rednet.send(controls.landing.receiverId, "status", controls.landing.protocol)
+rednet.send(controls.cargo.receiverId, "status", controls.cargo.protocol)
 
 while true do
   local event, a, b, c = os.pullEvent()
 
-  if event == "monitor_touch" and a == monitorName then
-    local x = b
-    local y = c
-    for _, area in ipairs(buttonAreas) do
-      if isInside(area, x, y) then
-        sendGearCommand(area.command)
-        break
-      end
-    end
+  if event == "monitor_touch" then
+    handleTouch(a, b, c)
   elseif event == "monitor_resize" then
-    draw()
+    resolveMonitors()
+    drawAll()
   elseif event == "rednet_message" then
-    local sender = a
-    local message = b
-    local messageProtocol = c
-    if sender == receiverId and messageProtocol == protocol then
-      handleReceiverMessage(message)
-    end
+    handleRednet(a, b, c)
   elseif event == "peripheral" or event == "peripheral_detach" then
-    local newMonitorName, newMonitor = findMonitor()
-    if newMonitor then
-      monitorName = newMonitorName
-      monitor = newMonitor
-      monitor.setTextScale(0.5)
-      draw()
-    end
+    resolveMonitors()
+    drawAll()
   end
 end

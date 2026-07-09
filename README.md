@@ -69,14 +69,23 @@ Path:
 scripts/landing-gear-cockpit/startup.lua
 ```
 
-Use this on cockpit computer `10`. It draws two monitor buttons:
+Use this on cockpit computer `10`. It draws cockpit monitor controls for landing gear and cargo door.
+
+Landing gear buttons:
 
 ```text
 GEAR UP
 GEAR DOWN
 ```
 
-When a button is pressed, it sends a wireless rednet command to landing gear computer `11`.
+Cargo door buttons:
+
+```text
+RAISE
+LOWER
+```
+
+When a button is pressed, it sends a wireless rednet command to the matching receiver computer.
 
 Current wireless modem side:
 
@@ -84,20 +93,34 @@ Current wireless modem side:
 local modemSide = "right"
 ```
 
-Current receiver:
+Current landing gear receiver:
 
 ```lua
-local receiverId = 11
+local landingReceiverId = 11
 ```
 
-Current monitor position:
+Current cargo door receiver:
 
 ```lua
-local monitorSection = 2
-local monitorSections = 5
+local cargoReceiverId = 12
+```
+
+Current landing gear monitor position:
+
+```lua
+local landingMonitorSection = 2
+local landingMonitorSections = 5
 ```
 
 This puts the landing gear UI in the second section from the left on a 1x5 monitor. The script only clears and redraws that section.
+
+Current cargo monitor preference:
+
+```lua
+local cargoMonitorName = "left"
+```
+
+If a separate left-side monitor is attached, the cargo UI uses that whole monitor. If no separate side monitor is found, it falls back to section `3` of the wide 1x5 monitor.
 
 ### Landing Gear Receiver
 
@@ -131,6 +154,39 @@ local defaultState = "up"
 ```
 
 If the landing gear moves backward, swap `downModifier` and `upModifier`. The script saves its last gear state in `landing_gear_state.txt`, so pressing the same button twice will not rotate the gear twice.
+
+### Cargo Door Receiver
+
+Path:
+
+```text
+scripts/cargo-door-receiver/startup.lua
+```
+
+Use this on the cargo door receiver computer. It receives wireless commands from cockpit computer `10` and rotates the local Sequenced Gearshift to raise/lower the rear cargo entrance.
+
+Current wireless modem side:
+
+```lua
+local modemSide = "right"
+```
+
+Current allowed cockpit computer:
+
+```lua
+local cockpitId = 10
+```
+
+Current cargo movement settings:
+
+```lua
+local rotateDegrees = 90
+local lowerModifier = 1
+local raiseModifier = -1
+local defaultState = "up"
+```
+
+If the cargo door moves backward, swap `lowerModifier` and `raiseModifier`. If it needs to travel farther, change `rotateDegrees`. The script saves its last door state in `cargo_door_state.txt`.
 
 ## Install In Singleplayer
 
@@ -166,7 +222,7 @@ wget https://raw.githubusercontent.com/dallen2021/cc-create-plane-controls/main/
 reboot
 ```
 
-Landing gear cockpit controller, for computer `10`:
+Cockpit controller, for computer `10`:
 
 ```lua
 wget https://raw.githubusercontent.com/dallen2021/cc-create-plane-controls/main/scripts/landing-gear-cockpit/startup.lua startup.lua
@@ -177,6 +233,13 @@ Landing gear receiver, for computer `11`:
 
 ```lua
 wget https://raw.githubusercontent.com/dallen2021/cc-create-plane-controls/main/scripts/landing-gear-receiver/startup.lua startup.lua
+reboot
+```
+
+Cargo door receiver, for the cargo receiver computer:
+
+```lua
+wget https://raw.githubusercontent.com/dallen2021/cc-create-plane-controls/main/scripts/cargo-door-receiver/startup.lua startup.lua
 reboot
 ```
 
@@ -192,10 +255,12 @@ Wireless modems are useful for computer-to-computer messages, but they do not ma
 For landing gear, that means:
 
 ```text
-computer 10 + monitor + wireless modem on right
-        sends wireless command
+computer 10 + monitors + wireless modem on right
+        sends wireless commands
 computer 11 + wireless modem on right + local gearshift peripheral
         rotates landing gear bearing
+computer 12 + wireless modem on right + local gearshift peripheral
+        rotates rear cargo entrance bearing
 ```
 
 ## Useful Commands

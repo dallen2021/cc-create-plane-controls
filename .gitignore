@@ -1,4 +1,5 @@
 flap_state.txt
 landing_gear_state.txt
+cargo_door_state.txt
 *.tmp
 *.bak
