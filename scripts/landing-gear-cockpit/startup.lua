@@ -6,7 +6,7 @@ local landingMonitorName = nil
 local landingMonitorSection = 2
 local landingMonitorSections = 5
 
-local cargoReceiverId = 12
+local cargoReceiverId = 15
 local cargoProtocol = "plane_cargo_door"
 local cargoMonitorName = "left"
 local cargoFallbackSection = 3

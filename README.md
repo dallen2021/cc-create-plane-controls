@@ -102,7 +102,7 @@ local landingReceiverId = 11
 Current cargo door receiver:
 
 ```lua
-local cargoReceiverId = 12
+local cargoReceiverId = 15
 ```
 
 Current landing gear monitor position:
@@ -148,7 +148,7 @@ local modemSide = "front"
 Current cargo receiver:
 
 ```lua
-local receiverId = 12
+local receiverId = 15
 ```
 
 Current top monitor position:
@@ -205,7 +205,7 @@ Use this on the cargo door receiver computer. It receives wireless commands from
 Current wireless modem side:
 
 ```lua
-local modemSide = "right"
+local modemSide = "front"
 ```
 
 Current allowed cockpit computers:
@@ -303,7 +303,7 @@ computer 10 + monitors + wireless modem on right
         sends wireless commands
 computer 11 + wireless modem on right + local gearshift peripheral
         rotates landing gear bearing
-computer 12 + wireless modem on right + local gearshift peripheral
+computer 15 + wireless modem on front + local gearshift peripheral
         rotates rear cargo entrance bearing
 computer 14 + 1x3 top monitor + wireless modem on front
         sends cargo lift commands from the left top-monitor section

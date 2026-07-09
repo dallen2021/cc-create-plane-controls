@@ -1,5 +1,5 @@
 local modemSide = "front"
-local receiverId = 12
+local receiverId = 15
 local protocol = "plane_cargo_door"
 
 local monitorName = "top"

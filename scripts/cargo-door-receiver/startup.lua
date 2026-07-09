@@ -1,4 +1,4 @@
-local modemSide = "right"
+local modemSide = "front"
 local protocol = "plane_cargo_door"
 local cockpitIds = { 10, 14 }
 local preferredGearshiftName = nil
