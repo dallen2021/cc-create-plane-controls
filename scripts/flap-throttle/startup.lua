@@ -1,4 +1,4 @@
-local throttleSide = "back"
+local throttleSides = { "back", "bottom" }
 local preferredGearshiftName = nil
 
 local neutralLow = 7
@@ -83,6 +83,21 @@ local function levelToTargetAngle(level)
   end
 end
 
+local function readThrottleLevel()
+  local bestLevel = -1
+  local bestSide = throttleSides[1]
+
+  for _, side in ipairs(throttleSides) do
+    local level = redstone.getAnalogInput(side)
+    if level > bestLevel then
+      bestLevel = level
+      bestSide = side
+    end
+  end
+
+  return bestLevel, bestSide
+end
+
 local function formatDegrees(angle)
   if angle > 0 then
     return "+" .. angle .. " deg"
@@ -101,7 +116,7 @@ local function centerWrite(display, y, text, textColor, backgroundColor)
   display.write(text)
 end
 
-local function drawMonitor(display, level, targetAngle, currentAngle, message)
+local function drawMonitor(display, level, sourceSide, targetAngle, currentAngle, message)
   if not display then
     return
   end
@@ -115,15 +130,16 @@ local function drawMonitor(display, level, targetAngle, currentAngle, message)
 
   centerWrite(display, 3, "POWER LEVEL", colors.lightGray, colors.black)
   centerWrite(display, 4, tostring(level) .. " / 15", colors.white, colors.black)
+  centerWrite(display, 5, "FROM " .. string.upper(sourceSide), colors.gray, colors.black)
 
-  centerWrite(display, 6, "DEGREES", colors.lightGray, colors.black)
-  centerWrite(display, 7, formatDegrees(targetAngle), colors.lime, colors.black)
+  centerWrite(display, 7, "DEGREES", colors.lightGray, colors.black)
+  centerWrite(display, 8, formatDegrees(targetAngle), colors.lime, colors.black)
 
-  if height >= 9 then
-    centerWrite(display, 9, "CURRENT " .. formatDegrees(currentAngle), colors.gray, colors.black)
+  if height >= 10 then
+    centerWrite(display, 10, "CURRENT " .. formatDegrees(currentAngle), colors.gray, colors.black)
   end
 
-  if height >= 11 and message then
+  if height >= 12 and message then
     display.setCursorPos(1, height)
     display.setTextColor(colors.cyan)
     display.setBackgroundColor(colors.black)
@@ -144,7 +160,7 @@ term.clear()
 term.setCursorPos(1, 1)
 print("Flap controller")
 print("Gearshift: " .. gearshiftName)
-print("Throttle side: " .. throttleSide)
+print("Throttle sides: " .. table.concat(throttleSides, ", "))
 print("Monitor: " .. (monitorName or "none"))
 print("Saved angle: " .. currentAngle)
 print("Neutral: redstone 7 or 8")
@@ -154,13 +170,13 @@ while true do
     monitorName, monitor = findMonitor()
   end
 
-  local level = redstone.getAnalogInput(throttleSide)
+  local level, sourceSide = readThrottleLevel()
   local targetAngle = levelToTargetAngle(level)
   local message = "Ready"
 
   term.setCursorPos(1, 8)
   term.clearLine()
-  print("Level: " .. level .. " Target: " .. targetAngle .. " Current: " .. currentAngle .. "   ")
+  print("Level: " .. level .. " Side: " .. sourceSide .. " Target: " .. targetAngle .. " Current: " .. currentAngle .. "   ")
 
   if targetAngle ~= currentAngle and not gearshift.isRunning() then
     local delta = targetAngle - currentAngle
@@ -168,7 +184,7 @@ while true do
     local modifier = delta > 0 and 1 or -1
 
     message = "Rotating " .. delta .. " deg"
-    drawMonitor(monitor, level, targetAngle, currentAngle, message)
+    drawMonitor(monitor, level, sourceSide, targetAngle, currentAngle, message)
 
     term.clearLine()
     print(message .. "   ")
@@ -176,7 +192,7 @@ while true do
     gearshift.rotate(angle, modifier)
 
     while gearshift.isRunning() do
-      drawMonitor(monitor, level, targetAngle, currentAngle, message)
+      drawMonitor(monitor, level, sourceSide, targetAngle, currentAngle, message)
       sleep(0.05)
     end
 
@@ -185,6 +201,6 @@ while true do
     message = "Ready"
   end
 
-  drawMonitor(monitor, level, targetAngle, currentAngle, message)
+  drawMonitor(monitor, level, sourceSide, targetAngle, currentAngle, message)
   sleep(pollSeconds)
 end

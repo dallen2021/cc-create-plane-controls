@@ -53,11 +53,13 @@ redstone 15 = +21
 
 It also displays the power level and target degrees on a connected monitor.
 
-Current throttle side:
+Current throttle input sides:
 
 ```lua
-local throttleSide = "back"
+local throttleSides = { "back", "bottom" }
 ```
+
+If both sides are powered, the script uses the stronger analog signal.
 
 ## Install In Singleplayer
 
