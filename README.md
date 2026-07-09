@@ -90,6 +90,15 @@ Current receiver:
 local receiverId = 11
 ```
 
+Current monitor position:
+
+```lua
+local monitorSection = 2
+local monitorSections = 5
+```
+
+This puts the landing gear UI in the second section from the left on a 1x5 monitor. The script only clears and redraws that section.
+
 ### Landing Gear Receiver
 
 Path:

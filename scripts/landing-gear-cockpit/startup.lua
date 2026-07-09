@@ -1,6 +1,8 @@
 local modemSide = "right"
 local receiverId = 11
 local protocol = "plane_landing_gear"
+local monitorSection = 2
+local monitorSections = 5
 
 local function hasType(name, wanted)
   if peripheral.hasType then
@@ -51,12 +53,33 @@ local status = "Ready"
 local lastState = "unknown"
 local activeCommand = nil
 
-local function centerWrite(y, text, fg, bg)
+local function getPanelBounds()
   local width = monitor.getSize()
+  local sections = math.max(1, monitorSections)
+  local section = math.min(math.max(1, monitorSection), sections)
+  local sectionWidth = math.max(1, math.floor(width / sections))
+  local x1 = math.min(width, ((section - 1) * sectionWidth) + 1)
+  local x2 = section == sections and width or section * sectionWidth
+
+  return x1, math.max(x1, x2)
+end
+
+local function clearPanel(x1, x2)
+  local _, height = monitor.getSize()
+  monitor.setBackgroundColor(colors.black)
+  for y = 1, height do
+    monitor.setCursorPos(x1, y)
+    monitor.write(string.rep(" ", x2 - x1 + 1))
+  end
+end
+
+local function centerWriteIn(x1, x2, y, text, fg, bg)
+  local width = x2 - x1 + 1
+  local clipped = string.sub(text, 1, width)
   monitor.setTextColor(fg or colors.white)
   monitor.setBackgroundColor(bg or colors.black)
-  monitor.setCursorPos(math.max(1, math.floor((width - #text) / 2) + 1), y)
-  monitor.write(text)
+  monitor.setCursorPos(x1 + math.max(0, math.floor((width - #clipped) / 2)), y)
+  monitor.write(clipped)
 end
 
 local function fill(x1, y1, x2, y2, color)
@@ -68,26 +91,32 @@ local function fill(x1, y1, x2, y2, color)
 end
 
 local function layoutButtons()
-  local width, height = monitor.getSize()
-  local gap = 1
-  local top = 5
-  local bottom = math.max(top + 3, height - 3)
-  local buttonHeight = math.max(3, math.floor((bottom - top - gap + 1) / 2))
+  local _, height = monitor.getSize()
+  local panelX1, panelX2 = getPanelBounds()
+  local gap = height >= 7 and 1 or 0
+  local top = height >= 8 and 4 or 3
+  local statusLine = height
+  local availableHeight = math.max(2, statusLine - top)
+  local buttonHeight = math.max(1, math.floor((availableHeight - gap) / 2))
+  local innerX1 = math.min(panelX1 + 1, panelX2)
+  local innerX2 = math.max(innerX1, panelX2 - 1)
+  local firstY2 = math.min(statusLine - 1, top + buttonHeight - 1)
+  local secondY1 = math.min(statusLine - 1, firstY2 + gap + 1)
 
   buttonAreas = {
     {
-      x1 = 2,
+      x1 = innerX1,
       y1 = top,
-      x2 = width - 1,
-      y2 = top + buttonHeight - 1,
+      x2 = innerX2,
+      y2 = firstY2,
       label = buttons[1].label,
       command = buttons[1].command,
     },
     {
-      x1 = 2,
-      y1 = top + buttonHeight + gap,
-      x2 = width - 1,
-      y2 = top + 2 * buttonHeight + gap - 1,
+      x1 = innerX1,
+      y1 = secondY1,
+      x2 = innerX2,
+      y2 = math.min(statusLine - 1, secondY1 + buttonHeight - 1),
       label = buttons[2].label,
       command = buttons[2].command,
     },
@@ -104,33 +133,40 @@ local function drawButton(area)
 
   fill(area.x1, area.y1, area.x2, area.y2, bg)
 
-  local x = area.x1 + math.floor((area.x2 - area.x1 + 1 - #area.label) / 2)
+  local width = area.x2 - area.x1 + 1
+  local label = string.sub(area.label, 1, width)
+  local x = area.x1 + math.floor((width - #label) / 2)
   local y = area.y1 + math.floor((area.y2 - area.y1) / 2)
   monitor.setCursorPos(x, y)
   monitor.setTextColor(colors.white)
   monitor.setBackgroundColor(bg)
-  monitor.write(area.label)
+  monitor.write(label)
 end
 
 local function draw()
-  local width, height = monitor.getSize()
-  monitor.setBackgroundColor(colors.black)
-  monitor.clear()
+  local _, height = monitor.getSize()
+  local panelX1, panelX2 = getPanelBounds()
+  local panelWidth = panelX2 - panelX1 + 1
+  clearPanel(panelX1, panelX2)
 
-  centerWrite(1, "LANDING GEAR", colors.yellow, colors.black)
-  centerWrite(2, "Remote computer #" .. receiverId, colors.lightGray, colors.black)
-  centerWrite(3, "State: " .. string.upper(lastState), colors.lime, colors.black)
+  centerWriteIn(panelX1, panelX2, 1, "LANDING", colors.yellow, colors.black)
+  centerWriteIn(panelX1, panelX2, 2, "GEAR", colors.yellow, colors.black)
+
+  if height >= 8 then
+    centerWriteIn(panelX1, panelX2, 3, "State " .. string.upper(lastState), colors.lime, colors.black)
+  end
 
   layoutButtons()
   for _, area in ipairs(buttonAreas) do
     drawButton(area)
   end
 
-  monitor.setCursorPos(1, height)
+  monitor.setCursorPos(panelX1, height)
   monitor.setBackgroundColor(colors.black)
   monitor.setTextColor(colors.cyan)
-  monitor.clearLine()
-  monitor.write(string.sub(status, 1, width))
+  monitor.write(string.rep(" ", panelWidth))
+  monitor.setCursorPos(panelX1, height)
+  monitor.write(string.sub(status, 1, panelWidth))
 end
 
 local function isInside(area, x, y)
