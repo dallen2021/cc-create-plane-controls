@@ -61,6 +61,68 @@ local throttleSides = { "back", "bottom" }
 
 If both sides are powered, the script uses the stronger analog signal.
 
+### Landing Gear Cockpit Controller
+
+Path:
+
+```text
+scripts/landing-gear-cockpit/startup.lua
+```
+
+Use this on cockpit computer `10`. It draws two monitor buttons:
+
+```text
+GEAR UP
+GEAR DOWN
+```
+
+When a button is pressed, it sends a wireless rednet command to landing gear computer `11`.
+
+Current wireless modem side:
+
+```lua
+local modemSide = "right"
+```
+
+Current receiver:
+
+```lua
+local receiverId = 11
+```
+
+### Landing Gear Receiver
+
+Path:
+
+```text
+scripts/landing-gear-receiver/startup.lua
+```
+
+Use this on landing gear computer `11`. It receives wireless commands from the cockpit computer and rotates the local Sequenced Gearshift by 90 degrees.
+
+Current wireless modem side:
+
+```lua
+local modemSide = "right"
+```
+
+Current allowed cockpit computer:
+
+```lua
+local cockpitId = 10
+```
+
+Current gear movement settings:
+
+```lua
+local rotateDegrees = 90
+local downModifier = 1
+local upModifier = -1
+local defaultState = "up"
+```
+
+If the landing gear moves backward, swap `downModifier` and `upModifier`. The script saves its last gear state in `landing_gear_state.txt`, so pressing the same button twice will not rotate the gear twice.
+
 ## Install In Singleplayer
 
 Copy the script you want into the target computer folder as `startup.lua`.
@@ -95,6 +157,20 @@ wget https://raw.githubusercontent.com/dallen2021/cc-create-plane-controls/main/
 reboot
 ```
 
+Landing gear cockpit controller, for computer `10`:
+
+```lua
+wget https://raw.githubusercontent.com/dallen2021/cc-create-plane-controls/main/scripts/landing-gear-cockpit/startup.lua startup.lua
+reboot
+```
+
+Landing gear receiver, for computer `11`:
+
+```lua
+wget https://raw.githubusercontent.com/dallen2021/cc-create-plane-controls/main/scripts/landing-gear-receiver/startup.lua startup.lua
+reboot
+```
+
 ## Create Wiring Notes
 
 For direct peripheral control, the CC:Tweaked computer must see the Sequenced Gearshift as a peripheral. Use either:
@@ -103,6 +179,15 @@ For direct peripheral control, the CC:Tweaked computer must see the Sequenced Ge
 - wired modems plus networking cable.
 
 Wireless modems are useful for computer-to-computer messages, but they do not make a distant Sequenced Gearshift appear as a directly callable peripheral.
+
+For landing gear, that means:
+
+```text
+computer 10 + monitor + wireless modem on right
+        sends wireless command
+computer 11 + wireless modem on right + local gearshift peripheral
+        rotates landing gear bearing
+```
 
 ## Useful Commands
 
