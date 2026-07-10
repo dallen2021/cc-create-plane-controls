@@ -1,9 +1,14 @@
 local preferredMonitorName = nil
 local inventoryNames = {}
-local textScale = 0.5
+local onlyVaultInventories = true
+local defaultTextScale = 0.5
+local maximumTextScale = 1.0
 local refreshSeconds = 2
 local defaultCountMode = "short"
 local fallbackItemsPerSlot = 64
+local minimumMonitorWidth = 48
+local minimumMonitorHeight = 10
+local currentTextScale = defaultTextScale
 
 local Dashboard = {}
 
@@ -82,6 +87,20 @@ end
 function Dashboard.clampOffset(offset, itemCount, visibleRows)
   local maximum = math.max(0, (itemCount or 0) - math.max(0, visibleRows or 0))
   return clamp(math.floor(offset or 0), 0, maximum)
+end
+
+function Dashboard.isVaultPeripheral(name, peripheralTypes)
+  if string.find(string.lower(tostring(name or "")), "vault", 1, true) then
+    return true
+  end
+
+  for _, typeName in ipairs(peripheralTypes or {}) do
+    if string.find(string.lower(tostring(typeName)), "vault", 1, true) then
+      return true
+    end
+  end
+
+  return false
 end
 
 function Dashboard.aggregate(snapshots, defaultItemsPerSlot)
@@ -213,7 +232,9 @@ end
 local function findMonitor()
   if preferredMonitorName and hasType(preferredMonitorName, "monitor") then
     local preferred = peripheral.wrap(preferredMonitorName)
-    preferred.setTextScale(textScale)
+    if preferred.getTextScale() ~= currentTextScale then
+      preferred.setTextScale(currentTextScale)
+    end
     return preferredMonitorName, preferred
   end
 
@@ -224,8 +245,8 @@ local function findMonitor()
   for _, name in ipairs(peripheral.getNames()) do
     if hasType(name, "monitor") then
       local candidate = peripheral.wrap(name)
-      if candidate.getTextScale() ~= textScale then
-        candidate.setTextScale(textScale)
+      if candidate.getTextScale() ~= currentTextScale then
+        candidate.setTextScale(currentTextScale)
       end
       local width, height = candidate.getSize()
       local area = width * height
@@ -251,7 +272,9 @@ local function discoverInventoryNames()
     end
   else
     for _, name in ipairs(peripheral.getNames()) do
-      if hasType(name, "inventory") then
+      local types = { peripheral.getType(name) }
+      if hasType(name, "inventory")
+        and (not onlyVaultInventories or Dashboard.isVaultPeripheral(name, types)) then
         table.insert(names, name)
       end
     end
@@ -344,6 +367,7 @@ local state = {
   data = Dashboard.aggregate({}, fallbackItemsPerSlot),
   errors = {},
   buttons = {},
+  fontLimitReached = false,
 }
 
 local function isInside(area, x, y)
@@ -495,11 +519,22 @@ local function drawFooter(layout, visibleItemRows)
   drawButton("up", 2, layout.footerY, 5, "^", state.scrollOffset > 0, false)
   drawButton("down", 8, layout.footerY, 5, "v", state.scrollOffset < maxOffset, false)
   drawButton("mode", 14, layout.footerY, 7, string.upper(state.countMode), true, true)
+  if layout.leftX2 >= 28 then
+    drawButton("refresh", 22, layout.footerY, 7, "REFRESH", true, false)
+  end
+  if layout.leftX2 >= 33 then
+    local canIncreaseFont = currentTextScale < maximumTextScale and not state.fontLimitReached
+    drawButton("font", 30, layout.footerY, 4, "A+", canIncreaseFont, false)
+  end
 
   local rangeStart = #state.data.items == 0 and 0 or state.scrollOffset + 1
   local rangeEnd = math.min(#state.data.items, state.scrollOffset + visibleItemRows)
   local rangeText = string.format("%d-%d/%d", rangeStart, rangeEnd, #state.data.items)
-  writeAt(state.monitor, 22, layout.footerY, rangeText, colors.white, colors.gray, math.max(0, layout.leftX2 - 22))
+  local rangeX = layout.leftX2 >= 33 and 35 or (layout.leftX2 >= 28 and 30 or 22)
+  local rangeWidth = math.max(0, layout.leftX2 - rangeX + 1)
+  if rangeWidth >= 5 then
+    writeAt(state.monitor, rangeX, layout.footerY, rangeText, colors.white, colors.gray, rangeWidth)
+  end
 
   local totalLabel = "TOTAL"
   local percentage = string.format("[%3d%%]", state.data.totalPercent)
@@ -520,13 +555,14 @@ end
 
 local function drawDashboard()
   local display = state.monitor
+  state.buttons = {}
   display.setCursorBlink(false)
   display.setBackgroundColor(colors.black)
   display.setTextColor(colors.white)
   display.clear()
 
   local width, height = display.getSize()
-  if width < 48 or height < 10 then
+  if width < minimumMonitorWidth or height < minimumMonitorHeight then
     writeAt(display, 1, 1, "Monitor too small", colors.red, colors.black, width)
     writeAt(display, 1, 2, "Use the 3x7 monitor at scale 0.5", colors.white, colors.black, width)
     return
@@ -558,6 +594,25 @@ local function refreshData()
   state.data, state.errors = scanInventories()
 end
 
+local function increaseFontSize()
+  if currentTextScale >= maximumTextScale or state.fontLimitReached then
+    return
+  end
+
+  local previousScale = currentTextScale
+  local nextScale = math.min(maximumTextScale, currentTextScale + 0.5)
+  state.monitor.setTextScale(nextScale)
+
+  local width, height = state.monitor.getSize()
+  if width < minimumMonitorWidth or height < minimumMonitorHeight then
+    state.monitor.setTextScale(previousScale)
+    state.fontLimitReached = true
+    return
+  end
+
+  currentTextScale = nextScale
+end
+
 local function handleTouch(monitorName, x, y)
   if monitorName ~= state.monitorName then
     return
@@ -569,6 +624,10 @@ local function handleTouch(monitorName, x, y)
     state.scrollOffset = state.scrollOffset + 1
   elseif isInside(state.buttons.mode, x, y) then
     state.countMode = state.countMode == "short" and "long" or "short"
+  elseif isInside(state.buttons.refresh, x, y) then
+    refreshData()
+  elseif isInside(state.buttons.font, x, y) and state.buttons.font.enabled then
+    increaseFontSize()
   else
     return
   end

@@ -238,12 +238,14 @@ Use this on the computer connected to the `3`-high by `7`-wide Advanced Monitor 
 - combined item totals on the left, sorted greatest to least
 - `[SHORT]` / `[LONG]` count formatting, such as `[1.5k]` or `[1,500]`
 - touchable `^` and `v` item-list scroll buttons
+- a `REFRESH` button for an immediate inventory rescan
+- an `A+` button that safely increases monitor text scale from `0.5` to `1.0`
 - per-vault numbers and fill percentages on the right, such as `[V01] [ 92%]`
 - total network fill below the individual vaults
 
 The display refreshes every two seconds. Capacity is read from each inventory with `getItemLimit()` and cached, so inventories with unusual slot limits are handled correctly.
 
-By default, every connected inventory is included. If the wired network also contains chests or other inventories, set an allowlist at the top of the script:
+By default, automatic discovery includes only inventory peripherals whose name or type contains `vault`. This prevents connected chests and other inventory blocks from being counted as vaults. If needed, set an exact allowlist at the top of the script:
 
 ```lua
 local inventoryNames = {
@@ -253,6 +255,8 @@ local inventoryNames = {
 ```
 
 Leave `inventoryNames` empty to keep automatic discovery.
+
+If two physical vaults still appear as four, the wired network is exposing four separate vault peripherals. Activate only one wired modem per merged vault structure, or use `inventoryNames` to select exactly the two peripheral names that should be counted.
 
 ## Install In Singleplayer
 
@@ -373,7 +377,7 @@ List only visible inventories:
 ```lua
 for _, name in ipairs(peripheral.getNames()) do
   if peripheral.hasType(name, "inventory") then
-    print(name)
+    print(name, table.concat({ peripheral.getType(name) }, ", "))
   end
 end
 ```

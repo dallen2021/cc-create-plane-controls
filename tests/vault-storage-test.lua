@@ -116,5 +116,23 @@ runTest("builds fixed-width percentage bars", function()
   assertEqual(dashboard.makeBar(100, 10), "##########", "full bar")
 end)
 
+runTest("recognizes vault peripherals without counting every inventory", function()
+  assertEqual(
+    dashboard.isVaultPeripheral("create:item_vault_0", { "inventory" }),
+    true,
+    "vault peripheral name"
+  )
+  assertEqual(
+    dashboard.isVaultPeripheral("wired_inventory_0", { "create:item_vault", "inventory" }),
+    true,
+    "vault peripheral type"
+  )
+  assertEqual(
+    dashboard.isVaultPeripheral("minecraft:chest_0", { "minecraft:chest", "inventory" }),
+    false,
+    "non-vault inventory"
+  )
+end)
+
 print(string.format("%d passed, %d failed", passed, failed))
 os.shutdown()
