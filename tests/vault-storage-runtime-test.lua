@@ -7,6 +7,7 @@ local currentScale = 0.5
 local cursorX = 1
 local cursorY = 1
 local screen = {}
+local clearCalls = 0
 
 local monitor = {}
 
@@ -45,6 +46,7 @@ function monitor.setBackgroundColor()
 end
 
 function monitor.clear()
+  clearCalls = clearCalls + 1
   screen = {}
 end
 
@@ -61,6 +63,7 @@ end
 
 local inventory = {}
 local listCalls = 0
+local limitCalls = 0
 
 function inventory.size()
   return 50
@@ -74,6 +77,7 @@ function inventory.list()
 end
 
 function inventory.getItemLimit()
+  limitCalls = limitCalls + 1
   return 64
 end
 
@@ -117,8 +121,12 @@ local originalStartTimer = os.startTimer
 local originalPullEvent = os.pullEvent
 local eventCount = 0
 
-local function findOnScreen(text)
-  for y = 1, height do
+local function findOnScreen(text, fromBottom)
+  local firstY = fromBottom and height or 1
+  local lastY = fromBottom and 1 or height
+  local step = fromBottom and -1 or 1
+
+  for y = firstY, lastY, step do
     local characters = {}
     for x = 1, width do
       characters[x] = screen[y] and screen[y][x] or " "
@@ -138,7 +146,11 @@ end
 os.pullEvent = function()
   eventCount = eventCount + 1
   if eventCount == 1 then
-    return "monitor_touch", "monitor_0", 14, height
+    local x, y = findOnScreen("SHORT", true)
+    if not x then
+      error("SHORT button not rendered", 0)
+    end
+    return "monitor_touch", "monitor_0", x, y
   elseif eventCount == 2 then
     local x, y = findOnScreen("REFRESH")
     if not x then
@@ -146,11 +158,19 @@ os.pullEvent = function()
     end
     return "monitor_touch", "monitor_0", x, y
   elseif eventCount == 3 then
-    local x, y = findOnScreen("A+")
+    local x, y = findOnScreen("FONT: 0.5")
     if not x then
-      error("A+ button not rendered", 0)
+      error("FONT: 0.5 control not rendered", 0)
     end
-    return "monitor_touch", "monitor_0", x, y
+    return "monitor_touch", "monitor_0", x + #"FONT: 0.5" + 1, y
+  elseif eventCount == 4 then
+    local x, y = findOnScreen("FONT: 1")
+    if not x then
+      error("FONT: 1 control not rendered after increase", 0)
+    end
+    return "monitor_touch", "monitor_0", x - 2, y
+  elseif eventCount == 5 then
+    return "timer", 1
   end
   error(TEST_DONE, 0)
 end
@@ -182,19 +202,36 @@ local function assertContains(text, label)
   end
 end
 
+local function assertNotContains(text, label)
+  if string.find(rendered, text, 1, true) then
+    error("Unexpected " .. label .. " in rendered dashboard: " .. text, 0)
+  end
+end
+
 assertContains("STORAGE NETWORK", "dashboard title")
 assertContains("Iron Ingot", "friendly item name")
-assertContains("[1,600]", "refreshed long count")
-assertContains("[V01]", "vault number box")
+assertContains("1,600", "refreshed long count")
+assertNotContains("[1,600]", "bracketed item count")
+assertContains("[1]", "vault number box")
+assertNotContains("[V01]", "old vault number format")
 assertContains("1 VAULTS", "filtered vault count")
+assertContains("FONT: 0.5", "font stepper after decrease")
 
-if listCalls ~= 2 then
-  error("Expected exactly two inventory scans, got " .. listCalls, 0)
+if listCalls ~= 3 then
+  error("Expected exactly three inventory scans, got " .. listCalls, 0)
 end
 
-if currentScale ~= 1 then
-  error("Expected font scale 1.0 after A+ touch, got " .. currentScale, 0)
+if limitCalls ~= 1 then
+  error("Expected one capacity limit call, got " .. limitCalls, 0)
 end
 
-print("PASS filters vaults and handles mode, refresh, and font touches")
+if currentScale ~= 0.5 then
+  error("Expected font scale 0.5 after plus/minus touches, got " .. currentScale, 0)
+end
+
+if clearCalls ~= 5 then
+  error("Expected unchanged timer refresh to skip redraw; clear count was " .. clearCalls, 0)
+end
+
+print("PASS renders requested labels and optimized refresh/font controls")
 os.shutdown()

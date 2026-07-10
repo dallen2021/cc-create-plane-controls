@@ -134,5 +134,35 @@ runTest("recognizes vault peripherals without counting every inventory", functio
   )
 end)
 
+runTest("creates stable signatures for unchanged dashboard data", function()
+  local first = {
+    items = { { id = "minecraft:stone", count = 64 } },
+    vaults = { { sourceName = "create:item_vault_0", itemCount = 64, capacity = 640 } },
+    totalItems = 64,
+    totalCapacity = 640,
+    totalPercent = 10,
+  }
+  local same = {
+    items = { { id = "minecraft:stone", count = 64 } },
+    vaults = { { sourceName = "create:item_vault_0", itemCount = 64, capacity = 640 } },
+    totalItems = 64,
+    totalCapacity = 640,
+    totalPercent = 10,
+  }
+  local changed = {
+    items = { { id = "minecraft:stone", count = 65 } },
+    vaults = { { sourceName = "create:item_vault_0", itemCount = 65, capacity = 640 } },
+    totalItems = 65,
+    totalCapacity = 640,
+    totalPercent = 10,
+  }
+
+  local firstSignature = dashboard.dataSignature(first, {})
+  assertEqual(firstSignature, dashboard.dataSignature(same, {}), "unchanged signature")
+  if firstSignature == dashboard.dataSignature(changed, {}) then
+    fail("changed inventory data must produce a different signature")
+  end
+end)
+
 print(string.format("%d passed, %d failed", passed, failed))
 os.shutdown()

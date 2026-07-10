@@ -236,14 +236,14 @@ scripts/vault-storage/startup.lua
 Use this on the computer connected to the `3`-high by `7`-wide Advanced Monitor and the wired vault network. It automatically discovers connected inventory peripherals and displays:
 
 - combined item totals on the left, sorted greatest to least
-- `[SHORT]` / `[LONG]` count formatting, such as `[1.5k]` or `[1,500]`
+- `[SHORT]` / `[LONG]` count formatting, such as `1.5k` or `1,500`
 - touchable `^` and `v` item-list scroll buttons
 - a `REFRESH` button for an immediate inventory rescan
-- an `A+` button that safely increases monitor text scale from `0.5` to `1.0`
-- per-vault numbers and fill percentages on the right, such as `[V01] [ 92%]`
+- `[-] FONT: 0.5 [+]` controls that safely decrease or increase monitor text scale
+- per-vault numbers and fill percentages on the right, such as `[1] [ 92%]`
 - total network fill below the individual vaults
 
-The display refreshes every two seconds. Capacity is read from each inventory with `getItemLimit()` and cached, so inventories with unusual slot limits are handled correctly.
+The display scans every five seconds and redraws only when the inventory data changes. The `REFRESH` button forces an immediate scan. Create vault capacity uses one cached `getItemLimit()` lookup per vault instead of calling it once for every slot.
 
 By default, automatic discovery includes only inventory peripherals whose name or type contains `vault`. This prevents connected chests and other inventory blocks from being counted as vaults. If needed, set an exact allowlist at the top of the script:
 
@@ -256,7 +256,7 @@ local inventoryNames = {
 
 Leave `inventoryNames` empty to keep automatic discovery.
 
-If two physical vaults still appear as four, the wired network is exposing four separate vault peripherals. Activate only one wired modem per merged vault structure, or use `inventoryNames` to select exactly the two peripheral names that should be counted.
+Do not expose the same vault through both direct computer adjacency and a wired modem. CC:Tweaked sees those as two peripheral connections and the dashboard will count the vault twice. Use one connection method per merged vault structure, or use `inventoryNames` to select exactly the peripheral names that should be counted.
 
 ## Install In Singleplayer
 
@@ -347,7 +347,7 @@ dashboard computer -- wired modem -- networking cable
                                       `-- wired modem -- vault 3
 ```
 
-Attach and activate one wired modem for each separate logical vault structure. Do not attach multiple active modems to different blocks of the same merged Create vault, because the same inventory may then be discovered more than once and counted twice. The monitor can be directly beside the computer or connected through the same wired network.
+Attach and activate one wired modem for each separate logical vault structure. Do not also place that vault directly against the computer, and do not attach multiple active modems to different blocks of the same merged Create vault. Either setup exposes the same inventory more than once. The monitor can be directly beside the computer or connected through the same wired network.
 
 For landing gear, that means:
 

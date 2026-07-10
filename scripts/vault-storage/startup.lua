@@ -2,8 +2,9 @@ local preferredMonitorName = nil
 local inventoryNames = {}
 local onlyVaultInventories = true
 local defaultTextScale = 0.5
+local minimumTextScale = 0.5
 local maximumTextScale = 1.0
-local refreshSeconds = 2
+local refreshSeconds = 5
 local defaultCountMode = "short"
 local fallbackItemsPerSlot = 64
 local minimumMonitorWidth = 48
@@ -101,6 +102,34 @@ function Dashboard.isVaultPeripheral(name, peripheralTypes)
   end
 
   return false
+end
+
+function Dashboard.dataSignature(data, errors)
+  local parts = {
+    tostring(data.totalItems or 0),
+    tostring(data.totalCapacity or 0),
+    tostring(data.totalPercent or 0),
+  }
+
+  for _, item in ipairs(data.items or {}) do
+    table.insert(parts, "item")
+    table.insert(parts, tostring(item.id or ""))
+    table.insert(parts, tostring(item.count or 0))
+  end
+
+  for _, vault in ipairs(data.vaults or {}) do
+    table.insert(parts, "vault")
+    table.insert(parts, tostring(vault.sourceName or ""))
+    table.insert(parts, tostring(vault.itemCount or 0))
+    table.insert(parts, tostring(vault.capacity or 0))
+  end
+
+  for _, name in ipairs(errors or {}) do
+    table.insert(parts, "error")
+    table.insert(parts, tostring(name))
+  end
+
+  return table.concat(parts, "|")
 end
 
 function Dashboard.aggregate(snapshots, defaultItemsPerSlot)
@@ -292,14 +321,12 @@ local function readCapacity(name, size)
     return cached.capacity
   end
 
-  local capacity = 0
-  for slot = 1, size do
-    local ok, limit = pcall(peripheral.call, name, "getItemLimit", slot)
-    if not ok or type(limit) ~= "number" then
-      capacity = size * fallbackItemsPerSlot
-      break
+  local capacity = size * fallbackItemsPerSlot
+  if size > 0 then
+    local ok, limit = pcall(peripheral.call, name, "getItemLimit", 1)
+    if ok and type(limit) == "number" and limit > 0 then
+      capacity = size * limit
     end
-    capacity = capacity + limit
   end
 
   capacityCache[name] = { size = size, capacity = capacity }
@@ -368,6 +395,7 @@ local state = {
   errors = {},
   buttons = {},
   fontLimitReached = false,
+  dataSignature = nil,
 }
 
 local function isInside(area, x, y)
@@ -450,7 +478,7 @@ local function drawItems(layout)
     writeAt(state.monitor, 1, y, rank, colors.gray, colors.black, 2)
     writeAt(state.monitor, nameX, y, fitText(item.name, nameWidth), colors.white, colors.black, nameWidth)
 
-    local count = "[" .. Dashboard.formatCount(item.count, state.countMode) .. "]"
+    local count = Dashboard.formatCount(item.count, state.countMode)
     writeAt(
       state.monitor,
       countX,
@@ -467,7 +495,7 @@ end
 
 local function drawVaultRow(layout, y, index, vault)
   local availableWidth = layout.rightX2 - layout.rightX1
-  local label = string.format("[V%02d]", index)
+  local label = string.format("[%d]", index)
   local percentage = string.format("[%3d%%]", vault.percent)
   local barWidth = math.max(3, availableWidth - #label - #percentage - 5)
   local bar = "[" .. Dashboard.makeBar(vault.percent, barWidth) .. "]"
@@ -513,24 +541,32 @@ local function drawVaults(layout)
 end
 
 local function drawFooter(layout, visibleItemRows)
+  local controlY = layout.footerY - 1
+  fill(state.monitor, 1, controlY, layout.leftX2, controlY, colors.gray)
   fill(state.monitor, 1, layout.footerY, layout.width, layout.footerY, colors.gray)
 
   local maxOffset = math.max(0, #state.data.items - visibleItemRows)
-  drawButton("up", 2, layout.footerY, 5, "^", state.scrollOffset > 0, false)
-  drawButton("down", 8, layout.footerY, 5, "v", state.scrollOffset < maxOffset, false)
-  drawButton("mode", 14, layout.footerY, 7, string.upper(state.countMode), true, true)
+  drawButton("up", 2, controlY, 5, "^", state.scrollOffset > 0, false)
+  drawButton("down", 8, controlY, 5, "v", state.scrollOffset < maxOffset, false)
+  drawButton("mode", 14, controlY, 7, string.upper(state.countMode), true, true)
   if layout.leftX2 >= 28 then
-    drawButton("refresh", 22, layout.footerY, 7, "REFRESH", true, false)
+    drawButton("refresh", 22, controlY, 7, "REFRESH", true, false)
   end
-  if layout.leftX2 >= 33 then
-    local canIncreaseFont = currentTextScale < maximumTextScale and not state.fontLimitReached
-    drawButton("font", 30, layout.footerY, 4, "A+", canIncreaseFont, false)
-  end
+
+  local fontValue = currentTextScale == math.floor(currentTextScale)
+    and tostring(math.floor(currentTextScale))
+    or tostring(currentTextScale)
+  local fontLabel = "FONT: " .. fontValue
+  drawButton("fontDown", 2, layout.footerY, 3, "-", currentTextScale > minimumTextScale, false)
+  writeAt(state.monitor, 6, layout.footerY, fontLabel, colors.white, colors.gray, #fontLabel)
+  local fontUpX = 6 + #fontLabel + 1
+  local canIncreaseFont = currentTextScale < maximumTextScale and not state.fontLimitReached
+  drawButton("fontUp", fontUpX, layout.footerY, 3, "+", canIncreaseFont, false)
 
   local rangeStart = #state.data.items == 0 and 0 or state.scrollOffset + 1
   local rangeEnd = math.min(#state.data.items, state.scrollOffset + visibleItemRows)
   local rangeText = string.format("%d-%d/%d", rangeStart, rangeEnd, #state.data.items)
-  local rangeX = layout.leftX2 >= 33 and 35 or (layout.leftX2 >= 28 and 30 or 22)
+  local rangeX = fontUpX + 5
   local rangeWidth = math.max(0, layout.leftX2 - rangeX + 1)
   if rangeWidth >= 5 then
     writeAt(state.monitor, rangeX, layout.footerY, rangeText, colors.white, colors.gray, rangeWidth)
@@ -591,16 +627,27 @@ local function resolveMonitor()
 end
 
 local function refreshData()
-  state.data, state.errors = scanInventories()
+  local data, errors = scanInventories()
+  local signature = Dashboard.dataSignature(data, errors)
+  local changed = signature ~= state.dataSignature
+
+  state.data = data
+  state.errors = errors
+  state.dataSignature = signature
+  return changed
 end
 
-local function increaseFontSize()
-  if currentTextScale >= maximumTextScale or state.fontLimitReached then
+local function changeFontSize(delta)
+  if delta > 0 and state.fontLimitReached then
     return
   end
 
   local previousScale = currentTextScale
-  local nextScale = math.min(maximumTextScale, currentTextScale + 0.5)
+  local nextScale = clamp(currentTextScale + delta, minimumTextScale, maximumTextScale)
+  if nextScale == previousScale then
+    return
+  end
+
   state.monitor.setTextScale(nextScale)
 
   local width, height = state.monitor.getSize()
@@ -611,6 +658,9 @@ local function increaseFontSize()
   end
 
   currentTextScale = nextScale
+  if delta < 0 then
+    state.fontLimitReached = false
+  end
 end
 
 local function handleTouch(monitorName, x, y)
@@ -626,8 +676,10 @@ local function handleTouch(monitorName, x, y)
     state.countMode = state.countMode == "short" and "long" or "short"
   elseif isInside(state.buttons.refresh, x, y) then
     refreshData()
-  elseif isInside(state.buttons.font, x, y) and state.buttons.font.enabled then
-    increaseFontSize()
+  elseif isInside(state.buttons.fontDown, x, y) and state.buttons.fontDown.enabled then
+    changeFontSize(-0.5)
+  elseif isInside(state.buttons.fontUp, x, y) and state.buttons.fontUp.enabled then
+    changeFontSize(0.5)
   else
     return
   end
@@ -647,8 +699,9 @@ while true do
   if event == "monitor_touch" then
     handleTouch(a, b, c)
   elseif event == "timer" and a == refreshTimer then
-    refreshData()
-    drawDashboard()
+    if refreshData() then
+      drawDashboard()
+    end
     refreshTimer = os.startTimer(refreshSeconds)
   elseif event == "monitor_resize" and a == state.monitorName then
     drawDashboard()
