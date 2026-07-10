@@ -1,6 +1,6 @@
-# CC:Tweaked + Create Plane Controls
+# CC:Tweaked + Create Controls
 
-Lua scripts for controlling Create contraptions with CC:Tweaked computers in the `LBSMP 2` modpack.
+Lua scripts for controlling Create contraptions and monitoring storage with CC:Tweaked computers in the `LBSMP 2` modpack.
 
 ## Scripts
 
@@ -225,6 +225,35 @@ local defaultState = "up"
 
 If the cargo door moves backward, swap `lowerModifier` and `raiseModifier`. If it needs to travel farther, change `rotateDegrees`. The script saves its last door state in `cargo_door_state.txt`.
 
+### Vault Storage Dashboard
+
+Path:
+
+```text
+scripts/vault-storage/startup.lua
+```
+
+Use this on the computer connected to the `3`-high by `7`-wide Advanced Monitor and the wired vault network. It automatically discovers connected inventory peripherals and displays:
+
+- combined item totals on the left, sorted greatest to least
+- `[SHORT]` / `[LONG]` count formatting, such as `[1.5k]` or `[1,500]`
+- touchable `^` and `v` item-list scroll buttons
+- per-vault numbers and fill percentages on the right, such as `[V01] [ 92%]`
+- total network fill below the individual vaults
+
+The display refreshes every two seconds. Capacity is read from each inventory with `getItemLimit()` and cached, so inventories with unusual slot limits are handled correctly.
+
+By default, every connected inventory is included. If the wired network also contains chests or other inventories, set an allowlist at the top of the script:
+
+```lua
+local inventoryNames = {
+  "create:item_vault_0",
+  "create:item_vault_1",
+}
+```
+
+Leave `inventoryNames` empty to keep automatic discovery.
+
 ## Install In Singleplayer
 
 Copy the script you want into the target computer folder as `startup.lua`.
@@ -287,6 +316,13 @@ wget https://raw.githubusercontent.com/dallen2021/cc-create-plane-controls/main/
 reboot
 ```
 
+Vault storage dashboard:
+
+```lua
+wget https://raw.githubusercontent.com/dallen2021/cc-create-plane-controls/main/scripts/vault-storage/startup.lua startup.lua
+reboot
+```
+
 ## Create Wiring Notes
 
 For direct peripheral control, the CC:Tweaked computer must see the Sequenced Gearshift as a peripheral. Use either:
@@ -295,6 +331,19 @@ For direct peripheral control, the CC:Tweaked computer must see the Sequenced Ge
 - wired modems plus networking cable.
 
 Wireless modems are useful for computer-to-computer messages, but they do not make a distant Sequenced Gearshift appear as a directly callable peripheral.
+
+For the vault dashboard, use wired modems and networking cable:
+
+```text
+3x7 Advanced Monitor
+        |
+dashboard computer -- wired modem -- networking cable
+                                      |-- wired modem -- vault 1
+                                      |-- wired modem -- vault 2
+                                      `-- wired modem -- vault 3
+```
+
+Attach and activate one wired modem for each separate logical vault structure. Do not attach multiple active modems to different blocks of the same merged Create vault, because the same inventory may then be discovered more than once and counted twice. The monitor can be directly beside the computer or connected through the same wired network.
 
 For landing gear, that means:
 
@@ -316,6 +365,16 @@ List visible peripherals:
 ```lua
 for _, name in ipairs(peripheral.getNames()) do
   print(name, peripheral.getType(name))
+end
+```
+
+List only visible inventories:
+
+```lua
+for _, name in ipairs(peripheral.getNames()) do
+  if peripheral.hasType(name, "inventory") then
+    print(name)
+  end
 end
 ```
 
