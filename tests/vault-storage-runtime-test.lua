@@ -217,6 +217,19 @@ assertNotContains("[V01]", "old vault number format")
 assertContains("1 VAULTS", "filtered vault count")
 assertContains("FONT: 0.5", "font stepper after decrease")
 
+local refreshX, refreshY = findOnScreen("REFRESH")
+local fontX, fontY = findOnScreen("FONT: 0.5")
+local pageX, pageY = findOnScreen("1-1/1")
+if not refreshX or not fontX or not pageX then
+  error("Missing footer controls while checking horizontal layout", 0)
+end
+if refreshY ~= fontY or fontY ~= pageY then
+  error("Refresh, font, and pagination must share one row", 0)
+end
+if not (refreshX < fontX and fontX < pageX and pageX > width * 0.7) then
+  error("Font and pagination must be positioned to the right of the other controls", 0)
+end
+
 if listCalls ~= 3 then
   error("Expected exactly three inventory scans, got " .. listCalls, 0)
 end

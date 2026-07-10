@@ -239,7 +239,7 @@ Use this on the computer connected to the `3`-high by `7`-wide Advanced Monitor 
 - `[SHORT]` / `[LONG]` count formatting, such as `1.5k` or `1,500`
 - touchable `^` and `v` item-list scroll buttons
 - a `REFRESH` button for an immediate inventory rescan
-- `[-] FONT: 0.5 [+]` controls that safely decrease or increase monitor text scale
+- right-aligned `[-] FONT: 0.5 [+]` controls and pagination on the same toolbar row
 - per-vault numbers and fill percentages on the right, such as `[1] [ 92%]`
 - total network fill below the individual vaults
 

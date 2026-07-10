@@ -542,7 +542,7 @@ end
 
 local function drawFooter(layout, visibleItemRows)
   local controlY = layout.footerY - 1
-  fill(state.monitor, 1, controlY, layout.leftX2, controlY, colors.gray)
+  fill(state.monitor, 1, controlY, layout.width, controlY, colors.gray)
   fill(state.monitor, 1, layout.footerY, layout.width, layout.footerY, colors.gray)
 
   local maxOffset = math.max(0, #state.data.items - visibleItemRows)
@@ -557,20 +557,19 @@ local function drawFooter(layout, visibleItemRows)
     and tostring(math.floor(currentTextScale))
     or tostring(currentTextScale)
   local fontLabel = "FONT: " .. fontValue
-  drawButton("fontDown", 2, layout.footerY, 3, "-", currentTextScale > minimumTextScale, false)
-  writeAt(state.monitor, 6, layout.footerY, fontLabel, colors.white, colors.gray, #fontLabel)
-  local fontUpX = 6 + #fontLabel + 1
-  local canIncreaseFont = currentTextScale < maximumTextScale and not state.fontLimitReached
-  drawButton("fontUp", fontUpX, layout.footerY, 3, "+", canIncreaseFont, false)
-
   local rangeStart = #state.data.items == 0 and 0 or state.scrollOffset + 1
   local rangeEnd = math.min(#state.data.items, state.scrollOffset + visibleItemRows)
   local rangeText = string.format("%d-%d/%d", rangeStart, rangeEnd, #state.data.items)
-  local rangeX = fontUpX + 5
-  local rangeWidth = math.max(0, layout.leftX2 - rangeX + 1)
-  if rangeWidth >= 5 then
-    writeAt(state.monitor, rangeX, layout.footerY, rangeText, colors.white, colors.gray, rangeWidth)
-  end
+  local rangeX = layout.width - #rangeText
+  local fontUpX = rangeX - 5
+  local fontLabelX = fontUpX - #fontLabel - 1
+  local fontDownX = fontLabelX - 4
+  local canIncreaseFont = currentTextScale < maximumTextScale and not state.fontLimitReached
+
+  drawButton("fontDown", fontDownX, controlY, 3, "-", currentTextScale > minimumTextScale, false)
+  writeAt(state.monitor, fontLabelX, controlY, fontLabel, colors.white, colors.gray, #fontLabel)
+  drawButton("fontUp", fontUpX, controlY, 3, "+", canIncreaseFont, false)
+  writeAt(state.monitor, rangeX, controlY, rangeText, colors.white, colors.gray, #rangeText)
 
   local totalLabel = "TOTAL"
   local percentage = string.format("[%3d%%]", state.data.totalPercent)
@@ -586,7 +585,7 @@ local function drawFooter(layout, visibleItemRows)
 end
 
 local function drawDivider(layout)
-  fill(state.monitor, layout.dividerX, 1, layout.dividerX, layout.height, colors.lightGray)
+  fill(state.monitor, layout.dividerX, 1, layout.dividerX, layout.footerY - 2, colors.lightGray)
 end
 
 local function drawDashboard()
