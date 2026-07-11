@@ -235,7 +235,7 @@ scripts/vault-storage/startup.lua
 
 Use this on the computer connected to the `3`-high by `7`-wide Advanced Monitor and the wired vault network. It automatically discovers connected inventory peripherals and displays:
 
-- combined item totals on the left, sorted greatest to least
+- combined item totals on the left, sorted greatest to least, with a signed per-second rate beside each count
 - `[SHORT]` / `[LONG]` count formatting, such as `1.5k` or `1,500`
 - touchable `^` and `v` item-list scroll buttons
 - a `REFRESH` button for an immediate inventory rescan
@@ -243,7 +243,7 @@ Use this on the computer connected to the `3`-high by `7`-wide Advanced Monitor 
 - per-vault numbers and fill percentages on the right, using solid fill cells and light-gray empty cells instead of `#`/`-` bar characters
 - total network fill at the black bottom of the right panel
 
-The display scans every five seconds and redraws only when the inventory data changes. The `REFRESH` button forces an immediate scan. Create vault capacity uses one cached `getItemLimit()` lookup per vault instead of calling it once for every slot.
+The display scans every five seconds and redraws only when the inventory data or displayed rate changes. Each rate is the count difference since the previous scan divided by the real elapsed time: `+20/s` means items were added, `-2.5/s` means items were removed, and the first scan starts at `0/s`. The `REFRESH` button forces an immediate scan. Create vault capacity uses one cached `getItemLimit()` lookup per vault instead of calling it once for every slot.
 
 By default, automatic discovery includes only inventory peripherals whose name or type contains `vault`. This prevents connected chests and other inventory blocks from being counted as vaults. If needed, set an exact allowlist at the top of the script:
 

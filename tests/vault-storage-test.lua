@@ -1,4 +1,4 @@
-local SCRIPT_PATH = "repo/scripts/vault-storage/startup.lua"
+local SCRIPT_PATH = "scripts/vault-storage/startup.lua"
 
 local passed = 0
 local failed = 0
@@ -49,6 +49,41 @@ runTest("formats short and long item counts", function()
   assertEqual(dashboard.formatCount(999999, "short"), "1M", "rounded unit rollover")
   assertEqual(dashboard.formatCount(1500, "long"), "1,500", "thousands long count")
   assertEqual(dashboard.formatCount(1234567, "long"), "1,234,567", "millions long count")
+end)
+
+runTest("calculates and formats signed per-second item rates", function()
+  local baseline = {
+    items = {
+      { id = "minecraft:iron_ingot", count = 100 },
+    },
+  }
+  local baselineCounts = dashboard.applyItemRates(baseline, nil, nil)
+
+  assertEqual(baseline.items[1].rate, 0, "baseline rate")
+
+  local changed = {
+    items = {
+      { id = "minecraft:iron_ingot", count = 130 },
+      { id = "minecraft:gold_ingot", count = 5 },
+    },
+  }
+  local changedCounts = dashboard.applyItemRates(changed, baselineCounts, 5)
+
+  assertEqual(changed.items[1].rate, 6, "increasing item rate")
+  assertEqual(changed.items[2].rate, 1, "new item rate")
+  assertEqual(dashboard.formatRate(changed.items[1].rate, "short"), "+6/s", "positive rate")
+
+  local decreased = {
+    items = {
+      { id = "minecraft:iron_ingot", count = 125 },
+      { id = "minecraft:gold_ingot", count = 5 },
+    },
+  }
+  dashboard.applyItemRates(decreased, changedCounts, 2)
+
+  assertEqual(decreased.items[1].rate, -2.5, "decreasing item rate")
+  assertEqual(dashboard.formatRate(decreased.items[1].rate, "long"), "-2.5/s", "negative rate")
+  assertEqual(dashboard.formatRate(decreased.items[2].rate, "short"), "0/s", "unchanged rate")
 end)
 
 runTest("aggregates items and sorts greatest to least", function()

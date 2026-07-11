@@ -21,6 +21,14 @@ local function round(value)
   return math.floor(value + 0.5)
 end
 
+local function roundToTenths(value)
+  local scaled = (tonumber(value) or 0) * 10
+  if scaled < 0 then
+    return math.ceil(scaled - 0.5) / 10
+  end
+  return math.floor(scaled + 0.5) / 10
+end
+
 function Dashboard.friendlyName(itemId)
   local name = tostring(itemId or "unknown")
   name = string.match(name, ":(.+)$") or name
@@ -79,6 +87,52 @@ function Dashboard.formatCount(value, mode)
   return formatShort(value)
 end
 
+local function formatRateAmount(value, mode)
+  local amount = math.abs(roundToTenths(value))
+  if mode == "short" and amount >= 1000 then
+    return formatShort(amount)
+  end
+
+  local whole = math.floor(amount)
+  local formatted = mode == "long" and formatLong(whole) or tostring(whole)
+  local decimal = roundToTenths(amount - whole)
+  if decimal >= 0.1 then
+    formatted = formatted .. string.sub(string.format("%.1f", decimal), 2)
+  end
+  return formatted
+end
+
+function Dashboard.formatRate(value, mode)
+  local rate = roundToTenths(value)
+  if rate == 0 then
+    return "0/s"
+  end
+
+  local sign = rate > 0 and "+" or "-"
+  return sign .. formatRateAmount(rate, mode) .. "/s"
+end
+
+function Dashboard.applyItemRates(data, previousCounts, elapsedSeconds)
+  local currentCounts = {}
+  local elapsed = tonumber(elapsedSeconds)
+  local canCalculate = type(previousCounts) == "table" and elapsed and elapsed > 0
+
+  for _, item in ipairs(data.items or {}) do
+    local itemId = tostring(item.id or item.name or "unknown")
+    local count = math.max(0, tonumber(item.count) or 0)
+    currentCounts[itemId] = count
+
+    if canCalculate then
+      local previous = math.max(0, tonumber(previousCounts[itemId]) or 0)
+      item.rate = roundToTenths((count - previous) / elapsed)
+    else
+      item.rate = 0
+    end
+  end
+
+  return currentCounts
+end
+
 function Dashboard.barFill(percent, width)
   local safeWidth = math.max(0, math.floor(width or 0))
   return round(safeWidth * clamp(percent or 0, 0, 100) / 100)
@@ -114,6 +168,7 @@ function Dashboard.dataSignature(data, errors)
     table.insert(parts, "item")
     table.insert(parts, tostring(item.id or ""))
     table.insert(parts, tostring(item.count or 0))
+    table.insert(parts, tostring(item.rate or 0))
   end
 
   for _, vault in ipairs(data.vaults or {}) do
@@ -411,6 +466,8 @@ local state = {
   buttons = {},
   fontLimitReached = false,
   dataSignature = nil,
+  previousItemCounts = nil,
+  lastSampleMilliseconds = nil,
 }
 
 local function isInside(area, x, y)
@@ -428,6 +485,34 @@ local function drawButton(name, x1, y, width, label, enabled, active)
   local textX = x1 + math.max(0, math.floor((width - #text) / 2))
   writeAt(state.monitor, textX, y, text, colors.white, background, width)
   state.buttons[name] = { x1 = x1, y1 = y, x2 = x1 + width - 1, y2 = y, enabled = enabled }
+end
+
+local function itemColumns(layout)
+  local panelWidth = layout.leftX2 - layout.leftX1 + 1
+  local narrow = panelWidth < 50
+  local countWidth
+  local rateWidth
+
+  if narrow then
+    countWidth = state.countMode == "long" and 9 or 7
+    rateWidth = 10
+  else
+    countWidth = state.countMode == "long" and 14 or 10
+    rateWidth = state.countMode == "long" and 12 or 10
+  end
+
+  local rateX = layout.leftX2 - rateWidth + 1
+  local countX = rateX - countWidth - 1
+  local nameX = 3
+
+  return {
+    nameX = nameX,
+    nameWidth = math.max(1, countX - nameX - 1),
+    countX = countX,
+    countWidth = countWidth,
+    rateX = rateX,
+    rateWidth = rateWidth,
+  }
 end
 
 local function drawHeader(layout)
@@ -451,16 +536,25 @@ local function drawHeader(layout)
   writeAt(state.monitor, layout.rightX1 + 1, layout.headerY, "VAULT FILL", colors.yellow, colors.gray, layout.rightX2 - layout.rightX1)
 
   fill(state.monitor, 1, layout.columnHeaderY, layout.width, layout.columnHeaderY, colors.black)
-  writeAt(state.monitor, 3, layout.columnHeaderY, "ITEM", colors.lightGray, colors.black, layout.leftX2 - 3)
-  local countLabel = state.countMode == "short" and "COUNT (SHORT)" or "COUNT (LONG)"
+  local columns = itemColumns(layout)
+  writeAt(state.monitor, columns.nameX, layout.columnHeaderY, "ITEM", colors.lightGray, colors.black, columns.nameWidth)
   writeAt(
     state.monitor,
-    math.max(3, layout.leftX2 - #countLabel),
+    columns.countX,
     layout.columnHeaderY,
-    countLabel,
+    rightAlign("COUNT", columns.countWidth),
     colors.lightGray,
     colors.black,
-    #countLabel
+    columns.countWidth
+  )
+  writeAt(
+    state.monitor,
+    columns.rateX,
+    layout.columnHeaderY,
+    rightAlign("PER SECOND", columns.rateWidth),
+    colors.lightGray,
+    colors.black,
+    columns.rateWidth
   )
   writeAt(state.monitor, layout.rightX1 + 1, layout.columnHeaderY, "VAULT   USED", colors.lightGray, colors.black, layout.rightX2 - layout.rightX1)
 end
@@ -475,11 +569,7 @@ local function drawItems(layout)
     return visibleRows
   end
 
-  local countWidth = state.countMode == "long" and 16 or 10
-  countWidth = math.min(countWidth, math.max(7, math.floor((layout.leftX2 - layout.leftX1) * 0.3)))
-  local countX = layout.leftX2 - countWidth
-  local nameX = 3
-  local nameWidth = math.max(1, countX - nameX - 1)
+  local columns = itemColumns(layout)
 
   for row = 1, visibleRows do
     local index = state.scrollOffset + row
@@ -491,17 +581,42 @@ local function drawItems(layout)
     local y = layout.contentTop + row - 1
     local rank = string.format("%02d", index)
     writeAt(state.monitor, 1, y, rank, colors.gray, colors.black, 2)
-    writeAt(state.monitor, nameX, y, fitText(item.name, nameWidth), colors.white, colors.black, nameWidth)
+    writeAt(
+      state.monitor,
+      columns.nameX,
+      y,
+      fitText(item.name, columns.nameWidth),
+      colors.white,
+      colors.black,
+      columns.nameWidth
+    )
 
     local count = Dashboard.formatCount(item.count, state.countMode)
     writeAt(
       state.monitor,
-      countX,
+      columns.countX,
       y,
-      rightAlign(count, countWidth),
+      rightAlign(count, columns.countWidth),
       colors.cyan,
       colors.black,
-      countWidth
+      columns.countWidth
+    )
+
+    local rate = Dashboard.formatRate(item.rate, state.countMode)
+    local rateForeground = colors.lightGray
+    if (item.rate or 0) > 0 then
+      rateForeground = colors.lime
+    elseif (item.rate or 0) < 0 then
+      rateForeground = colors.red
+    end
+    writeAt(
+      state.monitor,
+      columns.rateX,
+      y,
+      rightAlign(rate, columns.rateWidth),
+      rateForeground,
+      colors.black,
+      columns.rateWidth
     )
   end
 
@@ -638,6 +753,22 @@ end
 
 local function refreshData()
   local data, errors = scanInventories()
+  local sampleMilliseconds
+  if os.epoch then
+    local ok, value = pcall(os.epoch, "utc")
+    if ok and type(value) == "number" then
+      sampleMilliseconds = value
+    end
+  end
+  sampleMilliseconds = sampleMilliseconds or math.floor(os.clock() * 1000)
+
+  local elapsedSeconds
+  if state.lastSampleMilliseconds then
+    elapsedSeconds = (sampleMilliseconds - state.lastSampleMilliseconds) / 1000
+  end
+  state.previousItemCounts = Dashboard.applyItemRates(data, state.previousItemCounts, elapsedSeconds)
+  state.lastSampleMilliseconds = sampleMilliseconds
+
   local signature = Dashboard.dataSignature(data, errors)
   local changed = signature ~= state.dataSignature
 

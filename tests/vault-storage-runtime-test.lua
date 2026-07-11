@@ -1,4 +1,4 @@
-local SCRIPT_PATH = "repo/scripts/vault-storage/startup.lua"
+local SCRIPT_PATH = "scripts/vault-storage/startup.lua"
 local TEST_DONE = "__VAULT_RUNTIME_TEST_DONE__"
 
 local width = 100
@@ -132,7 +132,9 @@ end
 local originalPeripheral = _G.peripheral
 local originalStartTimer = os.startTimer
 local originalPullEvent = os.pullEvent
+local originalEpoch = os.epoch
 local eventCount = 0
+local epochCalls = 0
 
 local function findOnScreen(text, fromBottom)
   local firstY = fromBottom and height or 1
@@ -156,6 +158,10 @@ _G.peripheral = fakePeripheral
 os.startTimer = function()
   return 1
 end
+os.epoch = function()
+  epochCalls = epochCalls + 1
+  return 100000 + ((epochCalls - 1) * 5000)
+end
 os.pullEvent = function()
   eventCount = eventCount + 1
   if eventCount == 1 then
@@ -171,6 +177,12 @@ os.pullEvent = function()
     end
     return "monitor_touch", "monitor_0", x, y
   elseif eventCount == 3 then
+    if not findOnScreen("PER SECOND") then
+      error("PER SECOND column not rendered", 0)
+    end
+    if not findOnScreen("+20/s") then
+      error("+20/s item rate not rendered after refresh", 0)
+    end
     local x, y = findOnScreen("FONT: 0.5")
     if not x then
       error("FONT: 0.5 control not rendered", 0)
@@ -184,6 +196,8 @@ os.pullEvent = function()
     return "monitor_touch", "monitor_0", x - 2, y
   elseif eventCount == 5 then
     return "timer", 1
+  elseif eventCount == 6 then
+    return "timer", 1
   end
   error(TEST_DONE, 0)
 end
@@ -194,6 +208,7 @@ local ok, err = pcall(dofile, SCRIPT_PATH)
 _G.peripheral = originalPeripheral
 os.startTimer = originalStartTimer
 os.pullEvent = originalPullEvent
+os.epoch = originalEpoch
 
 if ok or not string.find(tostring(err), TEST_DONE, 1, true) then
   error("Dashboard runtime failed before completing the touch test: " .. tostring(err), 0)
@@ -224,6 +239,8 @@ end
 assertContains("STORAGE NETWORK", "dashboard title")
 assertContains("Iron Ingot", "friendly item name")
 assertContains("1,600", "refreshed long count")
+assertContains("PER SECOND", "item rate column")
+assertContains("0/s", "settled item rate")
 assertNotContains("[1,600]", "bracketed item count")
 assertContains("[1]", "vault number box")
 assertNotContains("[V01]", "old vault number format")
@@ -285,8 +302,8 @@ for x = barStart + 1, barEnd - 1 do
   end
 end
 
-if listCalls ~= 3 then
-  error("Expected exactly three inventory scans, got " .. listCalls, 0)
+if listCalls ~= 4 then
+  error("Expected exactly four inventory scans, got " .. listCalls, 0)
 end
 
 if limitCalls ~= 1 then
@@ -297,8 +314,8 @@ if currentScale ~= 0.5 then
   error("Expected font scale 0.5 after plus/minus touches, got " .. currentScale, 0)
 end
 
-if clearCalls ~= 5 then
-  error("Expected unchanged timer refresh to skip redraw; clear count was " .. clearCalls, 0)
+if clearCalls ~= 6 then
+  error("Expected a rate decay redraw followed by an unchanged refresh skip; clear count was " .. clearCalls, 0)
 end
 
 print("PASS renders requested labels and optimized refresh/font controls")
