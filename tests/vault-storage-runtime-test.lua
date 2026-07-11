@@ -275,8 +275,8 @@ end
 if backgrounds[percentY][barStart + 1] ~= colors.lime then
   error("Filled vault bar cells must use a solid lime background", 0)
 end
-if backgrounds[percentY][barEnd - 1] ~= colors.gray then
-  error("Empty vault bar cells must use a dark-gray background", 0)
+if backgrounds[percentY][barEnd - 1] ~= colors.lightGray then
+  error("Empty vault bar cells must use a light-gray background distinct from the footer", 0)
 end
 for x = barStart + 1, barEnd - 1 do
   local character = screen[percentY] and screen[percentY][x] or " "

@@ -396,7 +396,7 @@ local function drawProgressBar(display, x, y, width, percent, filledColor, backg
     writeAt(display, x + 1, y, string.rep(" ", filled), colors.white, filledColor, filled)
   end
   if empty > 0 then
-    writeAt(display, x + 1 + filled, y, string.rep(" ", empty), colors.white, colors.gray, empty)
+    writeAt(display, x + 1 + filled, y, string.rep(" ", empty), colors.white, colors.lightGray, empty)
   end
   writeAt(display, x + safeWidth + 1, y, "]", filledColor, panelBackground, 1)
 end

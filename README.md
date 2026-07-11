@@ -240,7 +240,7 @@ Use this on the computer connected to the `3`-high by `7`-wide Advanced Monitor 
 - touchable `^` and `v` item-list scroll buttons
 - a `REFRESH` button for an immediate inventory rescan
 - a single-row gray footer with pagination right-aligned in the left panel and `[-] FONT: 0.5 [+]` left-aligned in the right panel
-- per-vault numbers and fill percentages on the right, using solid colored cells instead of `#`/`-` bar characters
+- per-vault numbers and fill percentages on the right, using solid fill cells and light-gray empty cells instead of `#`/`-` bar characters
 - total network fill at the black bottom of the right panel
 
 The display scans every five seconds and redraws only when the inventory data changes. The `REFRESH` button forces an immediate scan. Create vault capacity uses one cached `getItemLimit()` lookup per vault instead of calling it once for every slot.
