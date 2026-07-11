@@ -263,6 +263,28 @@ if backgrounds[totalY][totalX] ~= colors.black then
   error("Total vault fill must use the black panel background", 0)
 end
 
+local percentX, percentY = findOnScreen("[ 50%]")
+if not percentX then
+  error("Missing 50 percent vault row while checking block bar", 0)
+end
+local barStart = string.find(lines[percentY], "[", percentX + #"[ 50%]", true)
+local barEnd = barStart and string.find(lines[percentY], "]", barStart + 1, true)
+if not barStart or not barEnd or barEnd <= barStart + 1 then
+  error("Missing outlined vault fill bar", 0)
+end
+if backgrounds[percentY][barStart + 1] ~= colors.lime then
+  error("Filled vault bar cells must use a solid lime background", 0)
+end
+if backgrounds[percentY][barEnd - 1] ~= colors.gray then
+  error("Empty vault bar cells must use a dark-gray background", 0)
+end
+for x = barStart + 1, barEnd - 1 do
+  local character = screen[percentY] and screen[percentY][x] or " "
+  if character == "#" or character == "-" then
+    error("Vault fill bars must use block cells instead of hash or dash characters", 0)
+  end
+end
+
 if listCalls ~= 3 then
   error("Expected exactly three inventory scans, got " .. listCalls, 0)
 end

@@ -79,10 +79,9 @@ function Dashboard.formatCount(value, mode)
   return formatShort(value)
 end
 
-function Dashboard.makeBar(percent, width)
+function Dashboard.barFill(percent, width)
   local safeWidth = math.max(0, math.floor(width or 0))
-  local filled = round(safeWidth * clamp(percent or 0, 0, 100) / 100)
-  return string.rep("#", filled) .. string.rep("-", safeWidth - filled)
+  return round(safeWidth * clamp(percent or 0, 0, 100) / 100)
 end
 
 function Dashboard.clampOffset(offset, itemCount, visibleRows)
@@ -386,6 +385,22 @@ local function percentColor(percent)
   return colors.lime
 end
 
+local function drawProgressBar(display, x, y, width, percent, filledColor, backgroundColor)
+  local safeWidth = math.max(0, math.floor(width or 0))
+  local filled = Dashboard.barFill(percent, safeWidth)
+  local empty = safeWidth - filled
+  local panelBackground = backgroundColor or colors.black
+
+  writeAt(display, x, y, "[", filledColor, panelBackground, 1)
+  if filled > 0 then
+    writeAt(display, x + 1, y, string.rep(" ", filled), colors.white, filledColor, filled)
+  end
+  if empty > 0 then
+    writeAt(display, x + 1 + filled, y, string.rep(" ", empty), colors.white, colors.gray, empty)
+  end
+  writeAt(display, x + safeWidth + 1, y, "]", filledColor, panelBackground, 1)
+end
+
 local state = {
   monitorName = nil,
   monitor = nil,
@@ -498,19 +513,11 @@ local function drawVaultRow(layout, y, index, vault)
   local label = string.format("[%d]", index)
   local percentage = string.format("[%3d%%]", vault.percent)
   local barWidth = math.max(3, availableWidth - #label - #percentage - 5)
-  local bar = "[" .. Dashboard.makeBar(vault.percent, barWidth) .. "]"
+  local barX = layout.rightX1 + 1 + #label + #percentage + 2
 
   writeAt(state.monitor, layout.rightX1 + 1, y, label, colors.cyan, colors.black, #label)
   writeAt(state.monitor, layout.rightX1 + 1 + #label + 1, y, percentage, percentColor(vault.percent), colors.black, #percentage)
-  writeAt(
-    state.monitor,
-    layout.rightX1 + 1 + #label + #percentage + 2,
-    y,
-    bar,
-    percentColor(vault.percent),
-    colors.black,
-    math.max(0, layout.rightX2 - (layout.rightX1 + #label + #percentage + 2) + 1)
-  )
+  drawProgressBar(state.monitor, barX, y, barWidth, vault.percent, percentColor(vault.percent), colors.black)
 end
 
 local function drawVaults(layout)
@@ -578,7 +585,6 @@ local function drawFooter(layout, visibleItemRows)
   local totalLabel = "TOTAL"
   local percentage = string.format("[%3d%%]", state.data.totalPercent)
   local barWidth = math.max(3, (layout.rightX2 - layout.rightX1) - #totalLabel - #percentage - 5)
-  local bar = "[" .. Dashboard.makeBar(state.data.totalPercent, barWidth) .. "]"
   local x = layout.rightX1 + 1
   local totalY = layout.footerY - 1
 
@@ -586,7 +592,7 @@ local function drawFooter(layout, visibleItemRows)
   x = x + #totalLabel + 1
   writeAt(state.monitor, x, totalY, percentage, percentColor(state.data.totalPercent), colors.black, #percentage)
   x = x + #percentage + 1
-  writeAt(state.monitor, x, totalY, bar, percentColor(state.data.totalPercent), colors.black, math.max(0, layout.rightX2 - x + 1))
+  drawProgressBar(state.monitor, x, totalY, barWidth, state.data.totalPercent, percentColor(state.data.totalPercent), colors.black)
 end
 
 local function drawDivider(layout)
