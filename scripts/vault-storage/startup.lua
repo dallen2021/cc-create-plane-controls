@@ -541,15 +541,19 @@ local function drawVaults(layout)
 end
 
 local function drawFooter(layout, visibleItemRows)
-  local controlY = layout.footerY - 1
-  fill(state.monitor, 1, controlY, layout.width, controlY, colors.gray)
+  local controlY = layout.footerY
   fill(state.monitor, 1, layout.footerY, layout.width, layout.footerY, colors.gray)
 
   local maxOffset = math.max(0, #state.data.items - visibleItemRows)
-  drawButton("up", 2, controlY, 5, "^", state.scrollOffset > 0, false)
-  drawButton("down", 8, controlY, 5, "v", state.scrollOffset < maxOffset, false)
-  drawButton("mode", 14, controlY, 7, string.upper(state.countMode), true, true)
-  if layout.leftX2 >= 28 then
+  if layout.leftX2 < 40 then
+    drawButton("up", 2, controlY, 3, "^", state.scrollOffset > 0, false)
+    drawButton("down", 6, controlY, 3, "v", state.scrollOffset < maxOffset, false)
+    drawButton("mode", 10, controlY, 7, string.upper(state.countMode), true, true)
+    drawButton("refresh", 18, controlY, 7, "REFRESH", true, false)
+  else
+    drawButton("up", 2, controlY, 5, "^", state.scrollOffset > 0, false)
+    drawButton("down", 8, controlY, 5, "v", state.scrollOffset < maxOffset, false)
+    drawButton("mode", 14, controlY, 7, string.upper(state.countMode), true, true)
     drawButton("refresh", 22, controlY, 7, "REFRESH", true, false)
   end
 
@@ -560,10 +564,10 @@ local function drawFooter(layout, visibleItemRows)
   local rangeStart = #state.data.items == 0 and 0 or state.scrollOffset + 1
   local rangeEnd = math.min(#state.data.items, state.scrollOffset + visibleItemRows)
   local rangeText = string.format("%d-%d/%d", rangeStart, rangeEnd, #state.data.items)
-  local rangeX = layout.width - #rangeText
-  local fontUpX = rangeX - 5
-  local fontLabelX = fontUpX - #fontLabel - 1
-  local fontDownX = fontLabelX - 4
+  local rangeX = layout.leftX2 - #rangeText
+  local fontDownX = layout.rightX1 + 1
+  local fontLabelX = fontDownX + 4
+  local fontUpX = fontLabelX + #fontLabel + 1
   local canIncreaseFont = currentTextScale < maximumTextScale and not state.fontLimitReached
 
   drawButton("fontDown", fontDownX, controlY, 3, "-", currentTextScale > minimumTextScale, false)
@@ -576,16 +580,17 @@ local function drawFooter(layout, visibleItemRows)
   local barWidth = math.max(3, (layout.rightX2 - layout.rightX1) - #totalLabel - #percentage - 5)
   local bar = "[" .. Dashboard.makeBar(state.data.totalPercent, barWidth) .. "]"
   local x = layout.rightX1 + 1
+  local totalY = layout.footerY - 1
 
-  writeAt(state.monitor, x, layout.footerY, totalLabel, colors.white, colors.gray, #totalLabel)
+  writeAt(state.monitor, x, totalY, totalLabel, colors.white, colors.black, #totalLabel)
   x = x + #totalLabel + 1
-  writeAt(state.monitor, x, layout.footerY, percentage, percentColor(state.data.totalPercent), colors.gray, #percentage)
+  writeAt(state.monitor, x, totalY, percentage, percentColor(state.data.totalPercent), colors.black, #percentage)
   x = x + #percentage + 1
-  writeAt(state.monitor, x, layout.footerY, bar, percentColor(state.data.totalPercent), colors.gray, math.max(0, layout.rightX2 - x + 1))
+  writeAt(state.monitor, x, totalY, bar, percentColor(state.data.totalPercent), colors.black, math.max(0, layout.rightX2 - x + 1))
 end
 
 local function drawDivider(layout)
-  fill(state.monitor, layout.dividerX, 1, layout.dividerX, layout.footerY - 2, colors.lightGray)
+  fill(state.monitor, layout.dividerX, 1, layout.dividerX, layout.height, colors.lightGray)
 end
 
 local function drawDashboard()

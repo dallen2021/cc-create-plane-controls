@@ -7,6 +7,8 @@ local currentScale = 0.5
 local cursorX = 1
 local cursorY = 1
 local screen = {}
+local backgrounds = {}
+local currentBackground = colors.black
 local clearCalls = 0
 
 local monitor = {}
@@ -25,6 +27,7 @@ function monitor.setTextScale(scale)
     height = 30
   end
   screen = {}
+  backgrounds = {}
 end
 
 function monitor.getSize()
@@ -42,12 +45,20 @@ end
 function monitor.setTextColor()
 end
 
-function monitor.setBackgroundColor()
+function monitor.setBackgroundColor(color)
+  currentBackground = color
 end
 
 function monitor.clear()
   clearCalls = clearCalls + 1
   screen = {}
+  backgrounds = {}
+  for y = 1, height do
+    backgrounds[y] = {}
+    for x = 1, width do
+      backgrounds[y][x] = currentBackground
+    end
+  end
 end
 
 function monitor.write(text)
@@ -56,6 +67,8 @@ function monitor.write(text)
     local x = cursorX + index - 1
     if x >= 1 and x <= width and cursorY >= 1 and cursorY <= height then
       screen[cursorY][x] = string.sub(text, index, index)
+      backgrounds[cursorY] = backgrounds[cursorY] or {}
+      backgrounds[cursorY][x] = currentBackground
     end
   end
   cursorX = cursorX + #text
@@ -220,14 +233,34 @@ assertContains("FONT: 0.5", "font stepper after decrease")
 local refreshX, refreshY = findOnScreen("REFRESH")
 local fontX, fontY = findOnScreen("FONT: 0.5")
 local pageX, pageY = findOnScreen("1-1/1")
-if not refreshX or not fontX or not pageX then
-  error("Missing footer controls while checking horizontal layout", 0)
+local totalX, totalY = findOnScreen("TOTAL")
+if not refreshX or not fontX or not pageX or not totalX then
+  error("Missing controls while checking panel layout", 0)
 end
-if refreshY ~= fontY or fontY ~= pageY then
-  error("Refresh, font, and pagination must share one row", 0)
+
+local rightWidth = math.max(24, math.floor(width * 0.35))
+rightWidth = math.min(rightWidth, math.max(18, width - 30))
+local dividerX = width - rightWidth
+local leftX2 = dividerX - 1
+local rightX1 = dividerX + 1
+
+if refreshY ~= height or pageY ~= height or fontY ~= height then
+  error("Navigation, pagination, and font controls must use the single footer row", 0)
 end
-if not (refreshX < fontX and fontX < pageX and pageX > width * 0.7) then
-  error("Font and pagination must be positioned to the right of the other controls", 0)
+if pageX + #"1-1/1" - 1 > leftX2 or pageX + #"1-1/1" - 1 < leftX2 - 1 then
+  error("Pagination must be right-aligned inside the left panel", 0)
+end
+if fontX < rightX1 or fontX > rightX1 + 6 then
+  error("Font controls must be left-aligned inside the right panel", 0)
+end
+if totalY ~= height - 1 or totalX < rightX1 then
+  error("Total vault fill must sit at the black bottom of the right panel", 0)
+end
+if backgrounds[height][1] ~= colors.gray or backgrounds[height - 1][1] ~= colors.black then
+  error("The gray footer must be exactly one row tall", 0)
+end
+if backgrounds[totalY][totalX] ~= colors.black then
+  error("Total vault fill must use the black panel background", 0)
 end
 
 if listCalls ~= 3 then
