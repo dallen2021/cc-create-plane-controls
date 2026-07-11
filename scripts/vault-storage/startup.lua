@@ -1,6 +1,6 @@
 local preferredMonitorName = nil
 local inventoryNames = {}
-local onlyVaultInventories = true
+local onlyVaultInventories = false
 local defaultTextScale = 0.5
 local minimumTextScale = 0.5
 local maximumTextScale = 1.0
@@ -519,7 +519,7 @@ local function drawHeader(layout)
   fill(state.monitor, 1, layout.headerY, layout.width, layout.headerY, colors.gray)
   writeAt(state.monitor, 2, layout.headerY, "STORAGE NETWORK", colors.yellow, colors.gray, layout.leftX2 - 2)
 
-  local summary = string.format("%d VAULTS  %d ITEMS", #state.data.vaults, #state.data.items)
+  local summary = string.format("%d STORES  %d ITEMS", #state.data.vaults, #state.data.items)
   local summaryWidth = math.max(0, layout.leftX2 - #"STORAGE NETWORK" - 4)
   if summaryWidth > 0 then
     writeAt(
@@ -533,7 +533,7 @@ local function drawHeader(layout)
     )
   end
 
-  writeAt(state.monitor, layout.rightX1 + 1, layout.headerY, "VAULT FILL", colors.yellow, colors.gray, layout.rightX2 - layout.rightX1)
+  writeAt(state.monitor, layout.rightX1 + 1, layout.headerY, "STORAGE FILL", colors.yellow, colors.gray, layout.rightX2 - layout.rightX1)
 
   fill(state.monitor, 1, layout.columnHeaderY, layout.width, layout.columnHeaderY, colors.black)
   local columns = itemColumns(layout)
@@ -556,7 +556,7 @@ local function drawHeader(layout)
     colors.black,
     columns.rateWidth
   )
-  writeAt(state.monitor, layout.rightX1 + 1, layout.columnHeaderY, "VAULT   USED", colors.lightGray, colors.black, layout.rightX2 - layout.rightX1)
+  writeAt(state.monitor, layout.rightX1 + 1, layout.columnHeaderY, "STORE   USED", colors.lightGray, colors.black, layout.rightX2 - layout.rightX1)
 end
 
 local function drawItems(layout)
@@ -652,13 +652,13 @@ local function drawVaults(layout)
       state.monitor,
       layout.rightX1 + 1,
       layout.contentTop + rowsForVaults,
-      "+" .. hidden .. " MORE VAULTS",
+      "+" .. hidden .. " MORE STORES",
       colors.lightGray,
       colors.black,
       layout.rightX2 - layout.rightX1
     )
   elseif #state.data.vaults == 0 then
-    writeAt(state.monitor, layout.rightX1 + 1, layout.contentTop + 1, "NO VAULTS", colors.orange, colors.black, layout.rightX2 - layout.rightX1)
+    writeAt(state.monitor, layout.rightX1 + 1, layout.contentTop + 1, "NO STORAGE", colors.orange, colors.black, layout.rightX2 - layout.rightX1)
   end
 end
 

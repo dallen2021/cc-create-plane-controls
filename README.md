@@ -233,19 +233,19 @@ Path:
 scripts/vault-storage/startup.lua
 ```
 
-Use this on the computer connected to the `3`-high by `7`-wide Advanced Monitor and the wired vault network. It automatically discovers connected inventory peripherals and displays:
+Use this on the computer connected to the `3`-high by `7`-wide Advanced Monitor and the wired storage network. It automatically discovers connected inventory peripherals and displays:
 
 - combined item totals on the left, sorted greatest to least, with a signed per-second rate beside each count
 - `[SHORT]` / `[LONG]` count formatting, such as `1.5k` or `1,500`
 - touchable `^` and `v` item-list scroll buttons
 - a `REFRESH` button for an immediate inventory rescan
 - a single-row gray footer with pagination right-aligned in the left panel and `[-] FONT: 0.5 [+]` left-aligned in the right panel
-- per-vault numbers and fill percentages on the right, using solid fill cells and light-gray empty cells instead of `#`/`-` bar characters
+- per-storage numbers and fill percentages on the right, using solid fill cells and light-gray empty cells instead of `#`/`-` bar characters
 - total network fill at the black bottom of the right panel
 
-The display scans every five seconds and redraws only when the inventory data or displayed rate changes. Each rate is the count difference since the previous scan divided by the real elapsed time: `+20/s` means items were added, `-2.5/s` means items were removed, and the first scan starts at `0/s`. The `REFRESH` button forces an immediate scan. Create vault capacity uses one cached `getItemLimit()` lookup per vault instead of calling it once for every slot.
+The display scans every five seconds and redraws only when the inventory data or displayed rate changes. Each rate is the count difference since the previous scan divided by the real elapsed time: `+20/s` means items were added, `-2.5/s` means items were removed, and the first scan starts at `0/s`. The `REFRESH` button forces an immediate scan. Storage capacity uses one cached `getItemLimit()` lookup per inventory instead of calling it once for every slot.
 
-By default, automatic discovery includes only inventory peripherals whose name or type contains `vault`. This prevents connected chests and other inventory blocks from being counted as vaults. If needed, set an exact allowlist at the top of the script:
+By default, automatic discovery includes every connected inventory peripheral, including Create vaults and chests. Set `onlyVaultInventories = true` at the top of the script to restore vault-only discovery, or set an exact allowlist:
 
 ```lua
 local inventoryNames = {
@@ -256,7 +256,7 @@ local inventoryNames = {
 
 Leave `inventoryNames` empty to keep automatic discovery.
 
-Do not expose the same vault through both direct computer adjacency and a wired modem. CC:Tweaked sees those as two peripheral connections and the dashboard will count the vault twice. Use one connection method per merged vault structure, or use `inventoryNames` to select exactly the peripheral names that should be counted.
+Do not expose the same inventory through both direct computer adjacency and a wired modem. CC:Tweaked sees those as two peripheral connections and the dashboard will count the inventory twice. Use one connection method per storage structure, or use `inventoryNames` to select exactly the peripheral names that should be counted.
 
 ## Install In Singleplayer
 

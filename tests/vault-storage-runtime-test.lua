@@ -74,30 +74,49 @@ function monitor.write(text)
   cursorX = cursorX + #text
 end
 
-local inventory = {}
+local vaultInventory = {}
+local chestInventory = {}
 local listCalls = 0
+local vaultListCalls = 0
 local limitCalls = 0
 
-function inventory.size()
+function vaultInventory.size()
   return 50
 end
 
-function inventory.list()
+function vaultInventory.list()
   listCalls = listCalls + 1
+  vaultListCalls = vaultListCalls + 1
   return {
-    [1] = { name = "minecraft:iron_ingot", count = listCalls >= 2 and 1600 or 1500 },
+    [1] = { name = "minecraft:iron_ingot", count = vaultListCalls >= 2 and 1600 or 1500 },
   }
 end
 
-function inventory.getItemLimit()
+function vaultInventory.getItemLimit()
+  limitCalls = limitCalls + 1
+  return 64
+end
+
+function chestInventory.size()
+  return 27
+end
+
+function chestInventory.list()
+  listCalls = listCalls + 1
+  return {
+    [1] = { name = "minecraft:iron_ingot", count = 64 },
+  }
+end
+
+function chestInventory.getItemLimit()
   limitCalls = limitCalls + 1
   return 64
 end
 
 local objects = {
   monitor_0 = monitor,
-  ["create:item_vault_0"] = inventory,
-  ["minecraft:chest_0"] = inventory,
+  ["create:item_vault_0"] = vaultInventory,
+  ["minecraft:chest_0"] = chestInventory,
 }
 
 local fakePeripheral = {}
@@ -238,13 +257,15 @@ end
 
 assertContains("STORAGE NETWORK", "dashboard title")
 assertContains("Iron Ingot", "friendly item name")
-assertContains("1,600", "refreshed long count")
+assertContains("1,664", "combined vault and chest count")
 assertContains("PER SECOND", "item rate column")
 assertContains("0/s", "settled item rate")
-assertNotContains("[1,600]", "bracketed item count")
+assertNotContains("[1,664]", "bracketed item count")
 assertContains("[1]", "vault number box")
+assertContains("[2]", "chest number box")
 assertNotContains("[V01]", "old vault number format")
-assertContains("1 VAULTS", "filtered vault count")
+assertContains("2 STORES", "mixed storage count")
+assertContains("STORAGE FILL", "mixed storage fill heading")
 assertContains("FONT: 0.5", "font stepper after decrease")
 
 local refreshX, refreshY = findOnScreen("REFRESH")
@@ -302,12 +323,12 @@ for x = barStart + 1, barEnd - 1 do
   end
 end
 
-if listCalls ~= 4 then
-  error("Expected exactly four inventory scans, got " .. listCalls, 0)
+if listCalls ~= 8 then
+  error("Expected four scans of two inventories, got " .. listCalls .. " inventory reads", 0)
 end
 
-if limitCalls ~= 1 then
-  error("Expected one capacity limit call, got " .. limitCalls, 0)
+if limitCalls ~= 2 then
+  error("Expected one capacity limit call per inventory, got " .. limitCalls, 0)
 end
 
 if currentScale ~= 0.5 then
