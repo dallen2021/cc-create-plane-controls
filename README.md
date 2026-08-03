@@ -32,11 +32,11 @@ Use this on one computer connected to two Advanced Monitors and an ordinary Crea
 
 Both monitors have `OPEN` and `CLOSE` buttons. The inside monitor also has `LOCK OUTSIDE` / `UNLOCK OUTSIDE`. While locked, the outside `OPEN` button is disabled, but the outside `CLOSE` button remains available if the door is already open. Door and lock state are saved in `dual_monitor_door_state.txt` and restored after reboot.
 
-The current door wiring pins the top monitor as inside and the bottom monitor as outside. The script prints the chosen peripheral names on the computer terminal and labels each screen `INSIDE DOOR` or `OUTSIDE DOOR`:
+The current door wiring pins the directly attached top monitor as inside. The outside monitor is connected through the wired modem on the bottom, so its generated network name (such as `monitor_0`) is selected automatically as the other monitor. The script prints the chosen peripheral names on the computer terminal and labels each screen `INSIDE DOOR` or `OUTSIDE DOOR`:
 
 ```lua
 local insideMonitorName = "top"
-local outsideMonitorName = "bottom"
+local outsideMonitorName = nil
 ```
 
 The Redstone Link is attached to the computer's front side:

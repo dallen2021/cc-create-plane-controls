@@ -74,7 +74,7 @@ end
 
 local monitors = {
   top = makeMonitor("top"),
-  bottom = makeMonitor("bottom"),
+  monitor_0 = makeMonitor("monitor_0"),
 }
 
 local function lineAt(name, y)
@@ -98,16 +98,19 @@ end
 local fakePeripheral = {}
 
 function fakePeripheral.getNames()
-  return { "bottom", "top" }
+  return { "bottom", "monitor_0", "top" }
 end
 
 function fakePeripheral.hasType(name, wanted)
-  return monitors[name] ~= nil and wanted == "monitor"
+  return (monitors[name] ~= nil and wanted == "monitor")
+    or (name == "bottom" and wanted == "modem")
 end
 
 function fakePeripheral.getType(name)
   if monitors[name] then
     return "monitor"
+  elseif name == "bottom" then
+    return "modem"
   end
 end
 
@@ -182,18 +185,18 @@ os.pullEvent = function()
     if not findOnMonitor("top", "INSIDE DOOR") then
       error("top was not assigned as the inside panel", 0)
     end
-    if not findOnMonitor("bottom", "OUTSIDE DOOR") then
-      error("bottom was not assigned as the outside panel", 0)
+    if not findOnMonitor("monitor_0", "OUTSIDE DOOR") then
+      error("the remote monitor was not assigned as the outside panel", 0)
     end
     if #outputCalls ~= 1 or outputCalls[1].side ~= "front" or outputCalls[1].level ~= 0 then
       error("startup must apply the closed signal to the front side", 0)
     end
 
-    local x, y, background = findOnMonitor("bottom", "OPEN", 5)
+    local x, y, background = findOnMonitor("monitor_0", "OPEN", 5)
     if not x or background ~= colors.green then
       error("outside OPEN must begin enabled", 0)
     end
-    return "monitor_touch", "bottom", x, y
+    return "monitor_touch", "monitor_0", x, y
   elseif eventCount == 2 then
     if #outputCalls ~= 2 or outputCalls[2].level ~= 15 then
       error("outside OPEN did not apply the open signal", 0)
@@ -204,27 +207,27 @@ os.pullEvent = function()
     end
     return "monitor_touch", "top", x, y
   elseif eventCount == 3 then
-    if not findOnMonitor("bottom", "ACCESS: LOCKED") then
+    if not findOnMonitor("monitor_0", "ACCESS: LOCKED") then
       error("outside panel did not show its locked state", 0)
     end
-    local openX, _, openBackground = findOnMonitor("bottom", "OPEN", 5)
-    local closeX, closeY, closeBackground = findOnMonitor("bottom", "CLOSE", 5)
+    local openX, _, openBackground = findOnMonitor("monitor_0", "OPEN", 5)
+    local closeX, closeY, closeBackground = findOnMonitor("monitor_0", "CLOSE", 5)
     if not openX or openBackground ~= colors.gray then
       error("outside OPEN must be disabled while locked", 0)
     end
     if not closeX or closeBackground ~= colors.orange then
       error("outside CLOSE must remain enabled while the locked door is open", 0)
     end
-    return "monitor_touch", "bottom", closeX, closeY
+    return "monitor_touch", "monitor_0", closeX, closeY
   elseif eventCount == 4 then
     if #outputCalls ~= 3 or outputCalls[3].level ~= 0 then
       error("outside CLOSE did not apply the closed signal", 0)
     end
-    local x, y, background = findOnMonitor("bottom", "OPEN", 5)
+    local x, y, background = findOnMonitor("monitor_0", "OPEN", 5)
     if not x or background ~= colors.gray then
       error("outside OPEN must stay disabled after closing a locked door", 0)
     end
-    return "monitor_touch", "bottom", x, y
+    return "monitor_touch", "monitor_0", x, y
   elseif eventCount == 5 then
     if #outputCalls ~= 3 then
       error("touching disabled outside OPEN changed the door output", 0)
@@ -244,7 +247,7 @@ os.pullEvent = function()
     end
     return "monitor_touch", "top", x, y
   elseif eventCount == 7 then
-    if not findOnMonitor("bottom", "ACCESS: UNLOCKED") then
+    if not findOnMonitor("monitor_0", "ACCESS: UNLOCKED") then
       error("outside panel did not show its unlocked state", 0)
     end
     if not files["dual_monitor_door_state.txt"] then

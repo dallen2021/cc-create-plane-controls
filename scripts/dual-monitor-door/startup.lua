@@ -1,5 +1,5 @@
 local insideMonitorName = "top"
-local outsideMonitorName = "bottom"
+local outsideMonitorName = nil
 local redstoneOutputSide = "front"
 local openSignal = 15
 local closedSignal = 0
