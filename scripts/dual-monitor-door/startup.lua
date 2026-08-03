@@ -6,7 +6,7 @@ local closedSignal = 0
 local defaultDoorState = "closed"
 local defaultLocked = false
 local monitorTextScale = 0.5
-local minimumMonitorWidth = 18
+local minimumMonitorWidth = 15
 local minimumMonitorHeight = 10
 local stateFile = "dual_monitor_door_state.txt"
 
@@ -292,7 +292,8 @@ local function drawPanel(role)
   centerWrite(
     display,
     3,
-    "ACCESS: " .. (currentState.locked and "LOCKED" or "UNLOCKED"),
+    (width < 16 and "ACCESS " or "ACCESS: ")
+      .. (currentState.locked and "LOCKED" or "UNLOCKED"),
     currentState.locked and colors.red or colors.lime,
     colors.black
   )
@@ -308,13 +309,17 @@ local function drawPanel(role)
   if role == "inside" then
     local lockBottom = height - 2
     local lockTop = math.max(actionTop + 3, lockBottom - 2)
+    local lockLabel = currentState.locked and "UNLOCK OUTSIDE" or "LOCK OUTSIDE"
+    if width < 16 and currentState.locked then
+      lockLabel = "UNLOCK"
+    end
     actionBottom = lockTop - 2
     drawButton(
       display,
       monitorName,
       "toggle_lock",
       { x1 = 2, y1 = lockTop, x2 = width - 1, y2 = lockBottom },
-      currentState.locked and "UNLOCK OUTSIDE" or "LOCK OUTSIDE",
+      lockLabel,
       true,
       currentState.locked and colors.blue or colors.red
     )

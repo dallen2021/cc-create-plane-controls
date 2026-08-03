@@ -1,8 +1,8 @@
 local SCRIPT_PATH = "scripts/dual-monitor-door/startup.lua"
 local TEST_DONE = "__DUAL_MONITOR_DOOR_RUNTIME_DONE__"
 
-local width = 29
-local height = 38
+local width = 15
+local height = 24
 local monitorStates = {}
 
 local function makeMonitor(name)
@@ -219,7 +219,7 @@ os.pullEvent = function()
     end
     return "monitor_touch", "top", x, y
   elseif eventCount == 3 then
-    if not findOnMonitor("monitor_0", "ACCESS: LOCKED") then
+    if not findOnMonitor("monitor_0", "ACCESS LOCKED") then
       error("outside panel did not show its locked state", 0)
     end
     local openX, _, openBackground = findOnMonitor("monitor_0", "OPEN", 5)
@@ -253,13 +253,13 @@ os.pullEvent = function()
     if #outputCalls ~= 4 or outputCalls[4].level ~= 15 then
       error("inside OPEN did not apply the open signal", 0)
     end
-    local x, y = findOnMonitor("top", "UNLOCK OUTSIDE", 5)
+    local x, y = findOnMonitor("top", "UNLOCK", 5)
     if not x then
       error("inside unlock button was not rendered", 0)
     end
     return "monitor_touch", "top", x, y
   elseif eventCount == 7 then
-    if not findOnMonitor("monitor_0", "ACCESS: UNLOCKED") then
+    if not findOnMonitor("monitor_0", "ACCESS UNLOCKED") then
       error("outside panel did not show its unlocked state", 0)
     end
     if not files["dual_monitor_door_state.txt"] then
