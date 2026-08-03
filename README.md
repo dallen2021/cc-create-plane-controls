@@ -32,20 +32,20 @@ Use this on one computer connected to two Advanced Monitors and an ordinary Crea
 
 Both monitors have `OPEN` and `CLOSE` buttons. The inside monitor also has `LOCK OUTSIDE` / `UNLOCK OUTSIDE`. While locked, the outside `OPEN` button is disabled, but the outside `CLOSE` button remains available if the door is already open. Door and lock state are saved in `dual_monitor_door_state.txt` and restored after reboot.
 
-The script automatically assigns roles when exactly two monitors are connected. It prints the chosen peripheral names on the computer terminal and labels each screen `INSIDE DOOR` or `OUTSIDE DOOR`. To swap or pin the roles, set these values at the top of the script:
+The current door wiring pins the top monitor as inside and the bottom monitor as outside. The script prints the chosen peripheral names on the computer terminal and labels each screen `INSIDE DOOR` or `OUTSIDE DOOR`:
 
 ```lua
-local insideMonitorName = "monitor_1"
-local outsideMonitorName = "monitor_2"
+local insideMonitorName = "top"
+local outsideMonitorName = "bottom"
 ```
 
-The Redstone Link defaults to the computer's back side:
+The Redstone Link is attached to the computer's front side:
 
 ```lua
-local redstoneOutputSide = "back"
+local redstoneOutputSide = "front"
 ```
 
-Change that side if the link is attached elsewhere. This controller assumes sustained power opens the door and removing power closes it; a pulse-driven Sequenced Gearshift needs a different actuator mode.
+This controller assumes sustained power opens the door and removing power closes it; a pulse-driven Sequenced Gearshift needs a different actuator mode.
 
 ### Flap Throttle Controller
 
