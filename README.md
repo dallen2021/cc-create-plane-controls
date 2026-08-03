@@ -28,21 +28,21 @@ Path:
 scripts/dual-monitor-door/startup.lua
 ```
 
-Use this on one computer connected to two Advanced Monitors and an ordinary Create Redstone Link. The computer holds a continuous redstone level on the link: `15` while the door should be open and `0` while it should be closed.
+Use this on one computer connected to two `1`-wide by `2`-high Advanced Monitors and an ordinary Create Redstone Link. The computer holds a continuous redstone level on the link: `15` while the door should be open and `0` while it should be closed.
 
 Both monitors have `OPEN` and `CLOSE` buttons. The inside monitor also has `LOCK OUTSIDE` / `UNLOCK OUTSIDE`. While locked, the outside `OPEN` button is disabled, but the outside `CLOSE` button remains available if the door is already open. Door and lock state are saved in `dual_monitor_door_state.txt` and restored after reboot.
 
-The current door wiring pins the directly attached top monitor as inside. The outside monitor is connected through the wired modem on the bottom, so its generated network name (such as `monitor_0`) is selected automatically as the other monitor. The script prints the chosen peripheral names on the computer terminal and labels each screen `INSIDE DOOR` or `OUTSIDE DOOR`:
+The current door wiring pins the directly attached top monitor as inside. The outside monitor is connected through the wired modem on the back, so its generated network name (such as `monitor_0`) is selected automatically as the other monitor. The script prints the chosen peripheral names on the computer terminal and labels each screen `INSIDE DOOR` or `OUTSIDE DOOR`:
 
 ```lua
 local insideMonitorName = "top"
 local outsideMonitorName = nil
 ```
 
-The Redstone Link is attached to the computer's front side:
+The Redstone Link is attached to the computer's bottom side:
 
 ```lua
-local redstoneOutputSide = "front"
+local redstoneOutputSide = "bottom"
 ```
 
 This controller assumes sustained power opens the door and removing power closes it; a pulse-driven Sequenced Gearshift needs a different actuator mode.

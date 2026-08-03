@@ -2,7 +2,7 @@ local SCRIPT_PATH = "scripts/dual-monitor-door/startup.lua"
 local TEST_DONE = "__DUAL_MONITOR_DOOR_RUNTIME_DONE__"
 
 local width = 29
-local height = 19
+local height = 38
 local monitorStates = {}
 
 local function makeMonitor(name)
@@ -98,18 +98,18 @@ end
 local fakePeripheral = {}
 
 function fakePeripheral.getNames()
-  return { "bottom", "monitor_0", "top" }
+  return { "back", "monitor_0", "top" }
 end
 
 function fakePeripheral.hasType(name, wanted)
   return (monitors[name] ~= nil and wanted == "monitor")
-    or (name == "bottom" and wanted == "modem")
+    or (name == "back" and wanted == "modem")
 end
 
 function fakePeripheral.getType(name)
   if monitors[name] then
     return "monitor"
-  elseif name == "bottom" then
+  elseif name == "back" then
     return "modem"
   end
 end
@@ -171,12 +171,24 @@ end
 local originalPeripheral = _G.peripheral
 local originalRedstone = _G.redstone
 local originalFs = _G.fs
+local originalTerm = _G.term
+local originalPrint = _G.print
 local originalPullEvent = os.pullEvent
 local eventCount = 0
 
 _G.peripheral = fakePeripheral
 _G.redstone = fakeRedstone
 _G.fs = fakeFs
+_G.term = {
+  clear = function()
+  end,
+  clearLine = function()
+  end,
+  setCursorPos = function()
+  end,
+}
+_G.print = function()
+end
 
 os.pullEvent = function()
   eventCount = eventCount + 1
@@ -188,8 +200,8 @@ os.pullEvent = function()
     if not findOnMonitor("monitor_0", "OUTSIDE DOOR") then
       error("the remote monitor was not assigned as the outside panel", 0)
     end
-    if #outputCalls ~= 1 or outputCalls[1].side ~= "front" or outputCalls[1].level ~= 0 then
-      error("startup must apply the closed signal to the front side", 0)
+    if #outputCalls ~= 1 or outputCalls[1].side ~= "bottom" or outputCalls[1].level ~= 0 then
+      error("startup must apply the closed signal to the bottom side", 0)
     end
 
     local x, y, background = findOnMonitor("monitor_0", "OPEN", 5)
@@ -264,6 +276,8 @@ local ok, err = pcall(dofile, SCRIPT_PATH)
 _G.peripheral = originalPeripheral
 _G.redstone = originalRedstone
 _G.fs = originalFs
+_G.term = originalTerm
+_G.print = originalPrint
 os.pullEvent = originalPullEvent
 
 if ok or not string.find(tostring(err), TEST_DONE, 1, true) then

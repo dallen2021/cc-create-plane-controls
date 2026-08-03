@@ -1,6 +1,6 @@
 local insideMonitorName = "top"
 local outsideMonitorName = nil
-local redstoneOutputSide = "front"
+local redstoneOutputSide = "bottom"
 local openSignal = 15
 local closedSignal = 0
 local defaultDoorState = "closed"
