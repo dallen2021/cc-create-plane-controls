@@ -20,6 +20,33 @@ Current default gearshift:
 local preferredGearshiftName = "Create_SequencedGearshift_0"
 ```
 
+### Dual-Monitor Door Controller
+
+Path:
+
+```text
+scripts/dual-monitor-door/startup.lua
+```
+
+Use this on one computer connected to two Advanced Monitors and an ordinary Create Redstone Link. The computer holds a continuous redstone level on the link: `15` while the door should be open and `0` while it should be closed.
+
+Both monitors have `OPEN` and `CLOSE` buttons. The inside monitor also has `LOCK OUTSIDE` / `UNLOCK OUTSIDE`. While locked, the outside `OPEN` button is disabled, but the outside `CLOSE` button remains available if the door is already open. Door and lock state are saved in `dual_monitor_door_state.txt` and restored after reboot.
+
+The script automatically assigns roles when exactly two monitors are connected. It prints the chosen peripheral names on the computer terminal and labels each screen `INSIDE DOOR` or `OUTSIDE DOOR`. To swap or pin the roles, set these values at the top of the script:
+
+```lua
+local insideMonitorName = "monitor_1"
+local outsideMonitorName = "monitor_2"
+```
+
+The Redstone Link defaults to the computer's back side:
+
+```lua
+local redstoneOutputSide = "back"
+```
+
+Change that side if the link is attached elsewhere. This controller assumes sustained power opens the door and removing power closes it; a pulse-driven Sequenced Gearshift needs a different actuator mode.
+
 ### Flap Throttle Controller
 
 Path:
@@ -282,6 +309,13 @@ Bearing monitor controller:
 
 ```lua
 wget https://raw.githubusercontent.com/dallen2021/cc-create-plane-controls/main/scripts/bearing-monitor/startup.lua startup.lua
+reboot
+```
+
+Dual-monitor door controller:
+
+```lua
+wget https://raw.githubusercontent.com/dallen2021/cc-create-plane-controls/main/scripts/dual-monitor-door/startup.lua startup.lua
 reboot
 ```
 
