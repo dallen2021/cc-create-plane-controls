@@ -17,7 +17,7 @@ Use this on a CC:Tweaked computer connected by wired modems to both a Redstone L
 Set the staircase's physical starting direction once with:
 
 ```lua
-local defaultHeading = "south"
+local defaultHeading = "north"
 ```
 
 The controller saves each completed heading in `cardinal_staircase_state.txt`, so normal computer reboots preserve its direction. If the bearing is manually moved or interrupted partway through a turn, delete that state file and set `defaultHeading` to its real direction before rebooting.

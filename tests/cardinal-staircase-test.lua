@@ -42,6 +42,10 @@ end
 
 local controller = controllerOrError
 
+runTest("starts at north when no saved heading exists", function()
+  assertEqual(controller.defaultHeading, "north", "default heading")
+end)
+
 runTest("uses iron ingot for the west Redstone Link channel", function()
   local westChannel = controller.buttonChannels.west
 

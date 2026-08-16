@@ -1,4 +1,4 @@
-local defaultHeading = "south"
+local defaultHeading = "north"
 local stateFile = "cardinal_staircase_state.txt"
 local pollSeconds = 0.05
 local startDelaySeconds = 0.2
@@ -12,6 +12,7 @@ local buttonChannels = {
 
 local Controller = {}
 Controller.buttonChannels = buttonChannels
+Controller.defaultHeading = defaultHeading
 
 local headings = {
   north = 0,
