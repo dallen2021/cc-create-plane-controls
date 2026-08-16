@@ -12,6 +12,7 @@ local buttonChannels = {
   sw = { "minecraft:lapis_lazuli", "minecraft:iron_ingot" },
   west = { "minecraft:compass", "minecraft:iron_ingot" },
   nw = { "minecraft:redstone", "minecraft:iron_ingot" },
+  entrance = { "minecraft:emerald", "minecraft:emerald" },
 }
 
 local buttonOrder = {
@@ -23,10 +24,12 @@ local buttonOrder = {
   "sw",
   "west",
   "nw",
+  "entrance",
 }
 
 local Controller = {}
 Controller.buttonChannels = buttonChannels
+Controller.buttonOrder = buttonOrder
 Controller.defaultHeading = defaultHeading
 
 local headings = {
@@ -39,6 +42,18 @@ local headings = {
   west = 6,
   nw = 7,
 }
+
+function Controller.resolveButtonTarget(button, currentHeading)
+  if button == "entrance" then
+    if currentHeading == "sw" then
+      return "south"
+    end
+
+    return "sw"
+  end
+
+  return button
+end
 
 function Controller.resolveTurn(current, target)
   local currentIndex = headings[current]
@@ -69,7 +84,7 @@ function Controller.resolveTurn(current, target)
   return { angle = (8 - difference) * 45, modifier = 1 }
 end
 
-function Controller.selectActiveButton(activeButtons, newlyPressedButtons)
+function Controller.selectActiveButton(activeButtons, newlyPressedButtons, currentHeading)
   if #activeButtons > 1 then
     local labels = {}
     for _, button in ipairs(activeButtons) do
@@ -85,7 +100,7 @@ function Controller.selectActiveButton(activeButtons, newlyPressedButtons)
   if #newlyPressedButtons == 1 then
     local button = newlyPressedButtons[1]
     return {
-      target = button,
+      target = Controller.resolveButtonTarget(button, currentHeading),
       message = "Last input: " .. string.upper(button),
     }
   end
@@ -236,7 +251,7 @@ while true do
     heldButtons[button] = pressed
   end
 
-  local command = Controller.selectActiveButton(activeButtons, newlyPressedButtons)
+  local command = Controller.selectActiveButton(activeButtons, newlyPressedButtons, currentHeading)
   if command.target then
     lastConflictMessage = nil
     rotateTo(command.target, command.message)

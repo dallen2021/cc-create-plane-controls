@@ -54,9 +54,12 @@ South: Compass + Lapis Lazuli
 SW:    Lapis Lazuli + Iron Ingot
 West:  Compass + Iron Ingot
 NW:    Redstone + Iron Ingot
+Entrance: Emerald + Emerald
 ```
 
 Set the staircase physically to SW before the first run. From SW, the West and South buttons each make a 45-degree turn.
+
+The **Entrance** control is state-aware: it sends the staircase to SW from any other recorded heading. Press it again while the computer reports SW and it rotates to South so the player can exit.
 
 The controller accepts one active button signal at a time. If multiple link channels are powered, it will not rotate and will show the conflicting labels on the computer screen.
 
@@ -373,10 +376,11 @@ Eight-way 45-degree staircase controller:
 
 ```lua
 delete startup.lua
-delete eight_way_staircase_state.txt
 wget https://raw.githubusercontent.com/dallen2021/cc-create-plane-controls/main/scripts/eight-way-staircase/startup.lua startup.lua
 reboot
 ```
+
+Keep `eight_way_staircase_state.txt` during ordinary updates so the controller retains its recorded heading. Only delete it after manually setting the staircase to the configured default heading (SW).
 
 Bearing monitor controller:
 
