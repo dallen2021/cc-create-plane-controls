@@ -42,6 +42,13 @@ end
 
 local controller = controllerOrError
 
+runTest("uses iron ingot for the west Redstone Link channel", function()
+  local westChannel = controller.buttonChannels.west
+
+  assertEqual(westChannel[1], "minecraft:compass", "west first frequency")
+  assertEqual(westChannel[2], "minecraft:iron_ingot", "west second frequency")
+end)
+
 runTest("keeps the staircase still when it already faces the requested direction", function()
   local plan = controller.resolveTurn("south", "south")
 

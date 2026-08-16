@@ -7,10 +7,11 @@ local buttonChannels = {
   north = { "minecraft:compass", "minecraft:redstone" },
   east = { "minecraft:compass", "minecraft:gold_ingot" },
   south = { "minecraft:compass", "minecraft:lapis_lazuli" },
-  west = { "minecraft:compass", "minecraft:emerald" },
+  west = { "minecraft:compass", "minecraft:iron_ingot" },
 }
 
 local Controller = {}
+Controller.buttonChannels = buttonChannels
 
 local headings = {
   north = 0,

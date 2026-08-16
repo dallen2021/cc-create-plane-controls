@@ -28,7 +28,7 @@ Configure the button transmitters with these frequency pairs, in this order:
 North: Compass + Redstone
 East:  Compass + Gold Ingot
 South: Compass + Lapis Lazuli
-West:  Compass + Emerald
+West:  Compass + Iron Ingot
 ```
 
 When viewed from above, `modifier = 1` is treated as clockwise and `modifier = -1` as counterclockwise. If the bearing turns the opposite way on the first test, swap those two values in `Controller.resolveTurn`.
