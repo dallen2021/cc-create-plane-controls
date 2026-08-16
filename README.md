@@ -4,6 +4,35 @@ Lua scripts for controlling Create contraptions and monitoring storage with CC:T
 
 ## Scripts
 
+### Cardinal Staircase Controller
+
+Path:
+
+```text
+scripts/cardinal-staircase/startup.lua
+```
+
+Use this on a CC:Tweaked computer connected by wired modems to both a Redstone Link Bridge and a Create Sequenced Gearshift. It receives four ordinary Create Redstone Link transmitter channels and turns a Mechanical Bearing to the requested cardinal direction using the shortest 90-degree or 180-degree move.
+
+Set the staircase's physical starting direction once with:
+
+```lua
+local defaultHeading = "south"
+```
+
+The controller saves each completed heading in `cardinal_staircase_state.txt`, so normal computer reboots preserve its direction. If the bearing is manually moved or interrupted partway through a turn, delete that state file and set `defaultHeading` to its real direction before rebooting.
+
+Configure the button transmitters with these frequency pairs, in this order:
+
+```text
+North: Compass + Redstone
+East:  Compass + Gold Ingot
+South: Compass + Lapis Lazuli
+West:  Compass + Emerald
+```
+
+When viewed from above, `modifier = 1` is treated as clockwise and `modifier = -1` as counterclockwise. If the bearing turns the opposite way on the first test, swap those two values in `Controller.resolveTurn`.
+
 ### Bearing Monitor Controller
 
 Path:
@@ -304,6 +333,14 @@ reboot
 ## Install From GitHub In Game
 
 If CC:Tweaked HTTP is enabled, run one of these on the target in-game computer.
+
+Cardinal staircase controller:
+
+```lua
+delete startup.lua
+wget https://raw.githubusercontent.com/dallen2021/cc-create-plane-controls/main/scripts/cardinal-staircase/startup.lua startup.lua
+reboot
+```
 
 Bearing monitor controller:
 
