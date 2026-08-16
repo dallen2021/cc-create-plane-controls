@@ -14,6 +14,17 @@ local buttonChannels = {
   nw = { "minecraft:redstone", "minecraft:iron_ingot" },
 }
 
+local buttonOrder = {
+  "north",
+  "ne",
+  "east",
+  "se",
+  "south",
+  "sw",
+  "west",
+  "nw",
+}
+
 local Controller = {}
 Controller.buttonChannels = buttonChannels
 Controller.defaultHeading = defaultHeading
@@ -56,6 +67,33 @@ function Controller.resolveTurn(current, target)
   end
 
   return { angle = (8 - difference) * 45, modifier = 1 }
+end
+
+function Controller.selectActiveButton(activeButtons, newlyPressedButtons)
+  if #activeButtons > 1 then
+    local labels = {}
+    for _, button in ipairs(activeButtons) do
+      labels[#labels + 1] = string.upper(button)
+    end
+
+    return {
+      target = nil,
+      message = "Conflicting signals: " .. table.concat(labels, " + "),
+    }
+  end
+
+  if #newlyPressedButtons == 1 then
+    local button = newlyPressedButtons[1]
+    return {
+      target = button,
+      message = "Last input: " .. string.upper(button),
+    }
+  end
+
+  return {
+    target = nil,
+    message = nil,
+  }
 end
 
 if rawget(_G, "__EIGHT_WAY_STAIRCASE_TEST") then
@@ -125,6 +163,7 @@ end
 local currentHeading = loadHeading()
 saveHeading(currentHeading)
 local heldButtons = {}
+local lastConflictMessage = nil
 
 local function drawStatus(message)
   term.clear()
@@ -142,16 +181,16 @@ local function isPressed(channel)
   return bridge.getLinkSignal(channel[1], channel[2]) > 0
 end
 
-local function rotateTo(target)
+local function rotateTo(target, completionMessage)
   local plan = Controller.resolveTurn(currentHeading, target)
 
   if plan.angle == 0 then
-    drawStatus("Already facing " .. string.upper(target))
+    drawStatus((completionMessage or "Last input: " .. string.upper(target)) .. " (already facing)")
     return
   end
 
   if gearshift.isRunning() then
-    drawStatus("Gearshift is busy")
+    drawStatus("Gearshift is busy; " .. (completionMessage or "input ignored"))
     return
   end
 
@@ -162,7 +201,7 @@ local function rotateTo(target)
   end)
 
   if not ok then
-    drawStatus("Rotate error: " .. tostring(err))
+    drawStatus("Rotate error: " .. tostring(err) .. "; " .. (completionMessage or "input ignored"))
     return
   end
 
@@ -173,20 +212,42 @@ local function rotateTo(target)
 
   currentHeading = target
   saveHeading(currentHeading)
-  drawStatus("Ready")
+  drawStatus(completionMessage or "Ready")
 end
 
 drawStatus("Ready")
 
 while true do
-  for target, channel in pairs(buttonChannels) do
+  local activeButtons = {}
+  local newlyPressedButtons = {}
+
+  for _, button in ipairs(buttonOrder) do
+    local channel = buttonChannels[button]
     local pressed = isPressed(channel)
 
-    if pressed and not heldButtons[target] then
-      rotateTo(target)
+    if pressed then
+      activeButtons[#activeButtons + 1] = button
     end
 
-    heldButtons[target] = pressed
+    if pressed and not heldButtons[button] then
+      newlyPressedButtons[#newlyPressedButtons + 1] = button
+    end
+
+    heldButtons[button] = pressed
+  end
+
+  local command = Controller.selectActiveButton(activeButtons, newlyPressedButtons)
+  if command.target then
+    lastConflictMessage = nil
+    rotateTo(command.target, command.message)
+  elseif command.message then
+    if command.message ~= lastConflictMessage then
+      drawStatus(command.message)
+    end
+
+    lastConflictMessage = command.message
+  else
+    lastConflictMessage = nil
   end
 
   sleep(pollSeconds)

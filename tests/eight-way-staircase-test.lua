@@ -64,6 +64,20 @@ runTest("uses the configured eight physical Redstone Link channels", function()
   end
 end)
 
+runTest("accepts one unambiguous button press", function()
+  local command = controller.selectActiveButton({ "south" }, { "south" })
+
+  assertEqual(command.target, "south", "single-button target")
+  assertEqual(command.message, "Last input: SOUTH", "single-button message")
+end)
+
+runTest("rejects simultaneous button signals", function()
+  local command = controller.selectActiveButton({ "east", "south" }, { "east", "south" })
+
+  assertEqual(command.target, nil, "conflicting target")
+  assertEqual(command.message, "Conflicting signals: EAST + SOUTH", "conflicting message")
+end)
+
 runTest("turns southwest to west by 45 degrees", function()
   local plan = controller.resolveTurn("sw", "west")
 

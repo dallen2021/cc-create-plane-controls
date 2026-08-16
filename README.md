@@ -58,6 +58,8 @@ NW:    Redstone + Iron Ingot
 
 Set the staircase physically to SW before the first run. From SW, the West and South buttons each make a 45-degree turn.
 
+The controller accepts one active button signal at a time. If multiple link channels are powered, it will not rotate and will show the conflicting labels on the computer screen.
+
 ### Bearing Monitor Controller
 
 Path:
