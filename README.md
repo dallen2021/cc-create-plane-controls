@@ -33,7 +33,30 @@ West:  Compass + Iron Ingot
 
 Keep those physical transmitter frequencies as listed. The controller deliberately compensates for this bearing's mirrored East/West direction internally.
 
-When viewed from above, `modifier = 1` is treated as clockwise and `modifier = -1` as counterclockwise. If the bearing turns the opposite way on the first test, swap those two values in `Controller.resolveTurn`.
+For this bearing, viewed from above, `modifier = 1` turns counterclockwise and `modifier = -1` turns clockwise. The controllers already account for that direction.
+
+### Eight-Way Staircase Controller (45 Degrees)
+
+Path:
+
+```text
+scripts/eight-way-staircase/startup.lua
+```
+
+This is a separate controller for the same bridge/gearshift arrangement. It retains the cardinal button links and adds diagonal targets, tracks the physical eight-way heading, and starts at **SE** when `eight_way_staircase_state.txt` does not exist.
+
+```text
+North: Compass + Redstone
+NE:    Redstone + Gold Ingot
+East:  Compass + Gold Ingot
+SE:    Lapis Lazuli + Gold Ingot
+South: Compass + Lapis Lazuli
+SW:    Lapis Lazuli + Iron Ingot
+West:  Compass + Iron Ingot
+NW:    Redstone + Iron Ingot
+```
+
+Set the staircase physically to SE before the first run. From SE, the East and South buttons each make a 45-degree turn.
 
 ### Bearing Monitor Controller
 
@@ -341,6 +364,15 @@ Cardinal staircase controller:
 ```lua
 delete startup.lua
 wget https://raw.githubusercontent.com/dallen2021/cc-create-plane-controls/main/scripts/cardinal-staircase/startup.lua startup.lua
+reboot
+```
+
+Eight-way 45-degree staircase controller:
+
+```lua
+delete startup.lua
+delete eight_way_staircase_state.txt
+wget https://raw.githubusercontent.com/dallen2021/cc-create-plane-controls/main/scripts/eight-way-staircase/startup.lua startup.lua
 reboot
 ```
 
