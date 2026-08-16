@@ -1,4 +1,4 @@
-local defaultHeading = "se"
+local defaultHeading = "sw"
 local stateFile = "eight_way_staircase_state.txt"
 local pollSeconds = 0.05
 local startDelaySeconds = 0.2

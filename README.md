@@ -43,7 +43,7 @@ Path:
 scripts/eight-way-staircase/startup.lua
 ```
 
-This is a separate controller for the same bridge/gearshift arrangement. It retains the cardinal button links and adds diagonal targets, tracks the physical eight-way heading, and starts at **SE** when `eight_way_staircase_state.txt` does not exist.
+This is a separate controller for the same bridge/gearshift arrangement. It retains the cardinal button links and adds diagonal targets, tracks the physical eight-way heading, and starts at **SW** when `eight_way_staircase_state.txt` does not exist.
 
 ```text
 North: Compass + Redstone
@@ -56,7 +56,7 @@ West:  Compass + Iron Ingot
 NW:    Redstone + Iron Ingot
 ```
 
-Set the staircase physically to SE before the first run. From SE, the East and South buttons each make a 45-degree turn.
+Set the staircase physically to SW before the first run. From SW, the West and South buttons each make a 45-degree turn.
 
 ### Bearing Monitor Controller
 

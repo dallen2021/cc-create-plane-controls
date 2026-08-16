@@ -42,8 +42,8 @@ end
 
 local controller = controllerOrError
 
-runTest("starts at southeast when no saved heading exists", function()
-  assertEqual(controller.defaultHeading, "se", "default heading")
+runTest("starts at southwest when no saved heading exists", function()
+  assertEqual(controller.defaultHeading, "sw", "default heading")
 end)
 
 runTest("uses the configured eight physical Redstone Link channels", function()
@@ -64,18 +64,18 @@ runTest("uses the configured eight physical Redstone Link channels", function()
   end
 end)
 
-runTest("turns southeast to east by 45 degrees", function()
-  local plan = controller.resolveTurn("se", "east")
+runTest("turns southwest to west by 45 degrees", function()
+  local plan = controller.resolveTurn("sw", "west")
 
-  assertEqual(plan.angle, 45, "southeast-to-east angle")
-  assertEqual(plan.modifier, 1, "southeast-to-east modifier")
+  assertEqual(plan.angle, 45, "southwest-to-west angle")
+  assertEqual(plan.modifier, -1, "southwest-to-west modifier")
 end)
 
-runTest("turns southeast to south by 45 degrees", function()
-  local plan = controller.resolveTurn("se", "south")
+runTest("turns southwest to south by 45 degrees", function()
+  local plan = controller.resolveTurn("sw", "south")
 
-  assertEqual(plan.angle, 45, "southeast-to-south angle")
-  assertEqual(plan.modifier, -1, "southeast-to-south modifier")
+  assertEqual(plan.angle, 45, "southwest-to-south angle")
+  assertEqual(plan.modifier, 1, "southwest-to-south modifier")
 end)
 
 runTest("takes the short 135 degree route between cardinal and diagonal headings", function()
