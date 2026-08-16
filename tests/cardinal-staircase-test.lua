@@ -46,11 +46,21 @@ runTest("starts at north when no saved heading exists", function()
   assertEqual(controller.defaultHeading, "north", "default heading")
 end)
 
-runTest("uses iron ingot for the west Redstone Link channel", function()
+runTest("keeps the physical east and west transmitter frequencies", function()
+  local eastChannel = controller.buttonChannels.east
   local westChannel = controller.buttonChannels.west
 
+  assertEqual(eastChannel[1], "minecraft:compass", "east first frequency")
+  assertEqual(eastChannel[2], "minecraft:gold_ingot", "east second frequency")
   assertEqual(westChannel[1], "minecraft:compass", "west first frequency")
   assertEqual(westChannel[2], "minecraft:iron_ingot", "west second frequency")
+end)
+
+runTest("mirrors only the east and west button targets", function()
+  assertEqual(controller.buttonTargets.north, "north", "north target")
+  assertEqual(controller.buttonTargets.east, "west", "east target")
+  assertEqual(controller.buttonTargets.south, "south", "south target")
+  assertEqual(controller.buttonTargets.west, "east", "west target")
 end)
 
 runTest("keeps the staircase still when it already faces the requested direction", function()

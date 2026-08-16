@@ -10,8 +10,18 @@ local buttonChannels = {
   west = { "minecraft:compass", "minecraft:iron_ingot" },
 }
 
+-- This bearing's horizontal direction is mirrored relative to the button labels.
+-- Keep the physical transmitter frequencies above unchanged.
+local buttonTargets = {
+  north = "north",
+  east = "west",
+  south = "south",
+  west = "east",
+}
+
 local Controller = {}
 Controller.buttonChannels = buttonChannels
+Controller.buttonTargets = buttonTargets
 Controller.defaultHeading = defaultHeading
 
 local headings = {
@@ -170,14 +180,14 @@ end
 drawStatus("Ready")
 
 while true do
-  for target, channel in pairs(buttonChannels) do
+  for button, channel in pairs(buttonChannels) do
     local pressed = isPressed(channel)
 
-    if pressed and not heldButtons[target] then
-      rotateTo(target)
+    if pressed and not heldButtons[button] then
+      rotateTo(buttonTargets[button])
     end
 
-    heldButtons[target] = pressed
+    heldButtons[button] = pressed
   end
 
   sleep(pollSeconds)

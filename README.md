@@ -31,6 +31,8 @@ South: Compass + Lapis Lazuli
 West:  Compass + Iron Ingot
 ```
 
+Keep those physical transmitter frequencies as listed. The controller deliberately compensates for this bearing's mirrored East/West direction internally.
+
 When viewed from above, `modifier = 1` is treated as clockwise and `modifier = -1` as counterclockwise. If the bearing turns the opposite way on the first test, swap those two values in `Controller.resolveTurn`.
 
 ### Bearing Monitor Controller
