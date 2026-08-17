@@ -57,16 +57,16 @@ runTest("holds a dedicated deployer link at full strength outside its 18-tick re
   assertEqual(controller.deployerReleaseSeconds, 0.9, "deployer release duration")
 end)
 
-runTest("assembles before leaving a placed diagonal heading", function()
-  assertListEqual(controller.planDeployerClicks("sw", "south"), { "assemble" }, "southwest departure clicks")
+runTest("does not pulse before leaving a diagonal heading", function()
+  assertListEqual(controller.planDeployerClicks("sw", "south"), {}, "southwest departure clicks")
 end)
 
 runTest("places after arriving at a diagonal heading", function()
   assertListEqual(controller.planDeployerClicks("north", "se"), { "place" }, "southeast arrival clicks")
 end)
 
-runTest("assembles and places for a diagonal-to-diagonal turn", function()
-  assertListEqual(controller.planDeployerClicks("sw", "nw"), { "assemble", "place" }, "diagonal turn clicks")
+runTest("pulses only once when a diagonal-to-diagonal turn lands", function()
+  assertListEqual(controller.planDeployerClicks("sw", "nw"), { "place" }, "diagonal turn clicks")
 end)
 
 runTest("does not click the bearing for a cardinal-to-cardinal turn", function()

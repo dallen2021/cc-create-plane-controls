@@ -73,7 +73,7 @@ Attach an ordinary Create Redstone Link receiver to that clutch and configure it
 Diamond + Emerald
 ```
 
-The controller holds that channel at redstone strength `15` while idle. When leaving a placed diagonal position, it removes the signal for `18` ticks (`0.9` seconds) to assemble the staircase. It does the same after reaching a diagonal target to place it. Cardinal targets receive no click and therefore remain contraptions.
+The controller holds that channel at redstone strength `15` while idle. It removes the signal once, for `18` ticks (`0.9` seconds), only after a move reaches a diagonal target so the staircase docks there. It does not pulse before a turn, and cardinal targets receive no click, so they remain contraptions.
 
 Keep the Deployer's hand empty. The controller restores the link to strength `15` after every release and on normal startup.
 

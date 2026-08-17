@@ -61,21 +61,11 @@ function Controller.isDiagonalHeading(heading)
 end
 
 function Controller.planDeployerClicks(currentHeading, targetHeading)
-  if currentHeading == targetHeading then
+  if currentHeading == targetHeading or not Controller.isDiagonalHeading(targetHeading) then
     return {}
   end
 
-  local clicks = {}
-
-  if Controller.isDiagonalHeading(currentHeading) then
-    clicks[#clicks + 1] = "assemble"
-  end
-
-  if Controller.isDiagonalHeading(targetHeading) then
-    clicks[#clicks + 1] = "place"
-  end
-
-  return clicks
+  return { "place" }
 end
 
 function Controller.resolveButtonTarget(button, currentHeading)

@@ -125,8 +125,8 @@ _G.sleep = function(seconds)
     assertEqual(rotateCalls[1].angle, 90, "southwest-to-northwest angle")
     assertEqual(rotateCalls[1].modifier, -1, "southwest-to-northwest modifier")
 
-    assertEqual(#sentSignals, 5, "deployer link signal count")
-    for index, expectedStrength in ipairs({ 15, 0, 15, 0, 15 }) do
+    assertEqual(#sentSignals, 3, "deployer link signal count")
+    for index, expectedStrength in ipairs({ 15, 0, 15 }) do
       local signal = sentSignals[index]
       assertEqual(signal.firstFrequency, "minecraft:diamond", "signal " .. index .. " first frequency")
       assertEqual(signal.secondFrequency, "minecraft:emerald", "signal " .. index .. " second frequency")
@@ -140,7 +140,7 @@ _G.sleep = function(seconds)
       end
     end
 
-    assertEqual(releaseCount, 2, "18-tick clutch release count")
+    assertEqual(releaseCount, 1, "18-tick clutch release count")
     assertEqual(files["eight_way_staircase_state.txt"], "nw", "saved heading")
     error(TEST_DONE, 0)
   end
@@ -159,5 +159,5 @@ if ok or not string.find(tostring(err), TEST_DONE, 1, true) then
   error("Eight-way staircase runtime failed before completing the diagonal docking test: " .. tostring(err), 0)
 end
 
-print("PASS docks the bearing with an 18-tick Deployer clutch release at both diagonal endpoints")
+print("PASS docks the bearing with one 18-tick Deployer clutch release at the target diagonal")
 os.shutdown()
