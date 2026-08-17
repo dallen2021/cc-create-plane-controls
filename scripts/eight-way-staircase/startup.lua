@@ -2,6 +2,9 @@ local defaultHeading = "sw"
 local stateFile = "eight_way_staircase_state.txt"
 local pollSeconds = 0.05
 local startDelaySeconds = 0.2
+local deployerChannel = { "minecraft:diamond", "minecraft:emerald" }
+local deployerIdleStrength = 15
+local deployerReleaseSeconds = 0.9
 
 local buttonChannels = {
   north = { "minecraft:compass", "minecraft:redstone" },
@@ -31,6 +34,9 @@ local Controller = {}
 Controller.buttonChannels = buttonChannels
 Controller.buttonOrder = buttonOrder
 Controller.defaultHeading = defaultHeading
+Controller.deployerChannel = deployerChannel
+Controller.deployerIdleStrength = deployerIdleStrength
+Controller.deployerReleaseSeconds = deployerReleaseSeconds
 
 local headings = {
   north = 0,
@@ -42,6 +48,35 @@ local headings = {
   west = 6,
   nw = 7,
 }
+
+local diagonalHeadings = {
+  ne = true,
+  se = true,
+  sw = true,
+  nw = true,
+}
+
+function Controller.isDiagonalHeading(heading)
+  return diagonalHeadings[heading] == true
+end
+
+function Controller.planDeployerClicks(currentHeading, targetHeading)
+  if currentHeading == targetHeading then
+    return {}
+  end
+
+  local clicks = {}
+
+  if Controller.isDiagonalHeading(currentHeading) then
+    clicks[#clicks + 1] = "assemble"
+  end
+
+  if Controller.isDiagonalHeading(targetHeading) then
+    clicks[#clicks + 1] = "place"
+  end
+
+  return clicks
+end
 
 function Controller.resolveButtonTarget(button, currentHeading)
   if button == "entrance" then
@@ -196,8 +231,38 @@ local function isPressed(channel)
   return bridge.getLinkSignal(channel[1], channel[2]) > 0
 end
 
+local function setDeployerLinkStrength(strength)
+  bridge.sendLinkSignal(deployerChannel[1], deployerChannel[2], strength)
+end
+
+local function clickBearing(action)
+  local actionLabel = action == "assemble" and "Assembling" or "Placing"
+  drawStatus(actionLabel .. " at " .. string.upper(currentHeading))
+
+  setDeployerLinkStrength(0)
+
+  local waited, waitError = pcall(function()
+    sleep(deployerReleaseSeconds)
+  end)
+
+  local restored, restoreError = pcall(function()
+    setDeployerLinkStrength(deployerIdleStrength)
+  end)
+
+  if not restored then
+    error("Unable to stop Deployer clutch: " .. tostring(restoreError), 0)
+  end
+
+  if not waited then
+    error(waitError, 0)
+  end
+
+  sleep(startDelaySeconds)
+end
+
 local function rotateTo(target, completionMessage)
   local plan = Controller.resolveTurn(currentHeading, target)
+  local deployerClicks = Controller.planDeployerClicks(currentHeading, target)
 
   if plan.angle == 0 then
     drawStatus((completionMessage or "Last input: " .. string.upper(target)) .. " (already facing)")
@@ -212,17 +277,31 @@ local function rotateTo(target, completionMessage)
   drawStatus("Turning to " .. string.upper(target))
 
   local ok, err = pcall(function()
+    for _, action in ipairs(deployerClicks) do
+      if action == "assemble" then
+        clickBearing(action)
+      end
+    end
+
+    drawStatus("Turning to " .. string.upper(target))
     gearshift.rotate(plan.angle, plan.modifier)
+
+    sleep(startDelaySeconds)
+    while gearshift.isRunning() do
+      sleep(pollSeconds)
+    end
+
+    for _, action in ipairs(deployerClicks) do
+      if action == "place" then
+        clickBearing(action)
+      end
+    end
   end)
 
   if not ok then
+    setDeployerLinkStrength(deployerIdleStrength)
     drawStatus("Rotate error: " .. tostring(err) .. "; " .. (completionMessage or "input ignored"))
     return
-  end
-
-  sleep(startDelaySeconds)
-  while gearshift.isRunning() do
-    sleep(pollSeconds)
   end
 
   currentHeading = target
@@ -230,6 +309,7 @@ local function rotateTo(target, completionMessage)
   drawStatus(completionMessage or "Ready")
 end
 
+setDeployerLinkStrength(deployerIdleStrength)
 drawStatus("Ready")
 
 while true do

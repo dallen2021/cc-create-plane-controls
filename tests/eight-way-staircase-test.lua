@@ -13,6 +13,14 @@ local function assertEqual(actual, expected, label)
   end
 end
 
+local function assertListEqual(actual, expected, label)
+  assertEqual(#actual, #expected, label .. " length")
+
+  for index, expectedValue in ipairs(expected) do
+    assertEqual(actual[index], expectedValue, label .. " entry " .. index)
+  end
+end
+
 local function runTest(name, test)
   local ok, err = pcall(test)
   if ok then
@@ -41,6 +49,33 @@ if not ok then
 end
 
 local controller = controllerOrError
+
+runTest("holds a dedicated deployer link at full strength outside its 18-tick release", function()
+  assertEqual(controller.deployerChannel[1], "minecraft:diamond", "deployer first frequency")
+  assertEqual(controller.deployerChannel[2], "minecraft:emerald", "deployer second frequency")
+  assertEqual(controller.deployerIdleStrength, 15, "deployer idle strength")
+  assertEqual(controller.deployerReleaseSeconds, 0.9, "deployer release duration")
+end)
+
+runTest("assembles before leaving a placed diagonal heading", function()
+  assertListEqual(controller.planDeployerClicks("sw", "south"), { "assemble" }, "southwest departure clicks")
+end)
+
+runTest("places after arriving at a diagonal heading", function()
+  assertListEqual(controller.planDeployerClicks("north", "se"), { "place" }, "southeast arrival clicks")
+end)
+
+runTest("assembles and places for a diagonal-to-diagonal turn", function()
+  assertListEqual(controller.planDeployerClicks("sw", "nw"), { "assemble", "place" }, "diagonal turn clicks")
+end)
+
+runTest("does not click the bearing for a cardinal-to-cardinal turn", function()
+  assertListEqual(controller.planDeployerClicks("north", "south"), {}, "cardinal turn clicks")
+end)
+
+runTest("does not click the bearing when it already faces the requested diagonal", function()
+  assertListEqual(controller.planDeployerClicks("sw", "sw"), {}, "already-facing clicks")
+end)
 
 runTest("starts at southwest when no saved heading exists", function()
   assertEqual(controller.defaultHeading, "sw", "default heading")

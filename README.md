@@ -63,6 +63,20 @@ The **Entrance** control is state-aware: it sends the staircase to SW from any o
 
 The controller accepts one active button signal at a time. If multiple link channels are powered, it will not rotate and will show the conflicting labels on the computer screen.
 
+#### Diagonal docking with a Deployer
+
+Set the Mechanical Bearing to **Only place when anchor is destroyed**. Place an empty, stationary Create Deployer in **Use** mode facing the bearing, and power the Deployer through a clutch. The clutch prevents the Deployer from moving while it receives redstone power.
+
+Attach an ordinary Create Redstone Link receiver to that clutch and configure it with:
+
+```text
+Diamond + Emerald
+```
+
+The controller holds that channel at redstone strength `15` while idle. When leaving a placed diagonal position, it removes the signal for `18` ticks (`0.9` seconds) to assemble the staircase. It does the same after reaching a diagonal target to place it. Cardinal targets receive no click and therefore remain contraptions.
+
+Keep the Deployer's hand empty. The controller restores the link to strength `15` after every release and on normal startup.
+
 ### Bearing Monitor Controller
 
 Path:
