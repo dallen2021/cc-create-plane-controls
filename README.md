@@ -85,7 +85,9 @@ Path:
 scripts/redstone-link-sequencer/startup.lua
 ```
 
-Use this on a CC:Tweaked computer connected to a Redstone Link Bridge. Configure four ordinary Create Redstone Link receivers with these frequencies:
+Use this on a CC:Tweaked computer connected to one `1`-wide by `2`-high Advanced Monitor and a **CC Redstone Link Bridge**. At text scale `0.5`, the monitor must provide at least `15x24` characters. The installed bridge peripheral supports `sendLinkSignal`, so it transmits the wireless Create channels; use four ordinary Create Redstone Link **receivers** for the outputs.
+
+Configure those four receivers with these frequencies:
 
 ```text
 Link 1: Red Sandstone + Sandstone
@@ -94,7 +96,13 @@ Link 3: Sandstone + Red Sandstone
 Link 4: Sandstone + Sandstone
 ```
 
-It repeats this cycle indefinitely, with every other link set to `0` while the listed link is set to `15`:
+The monitor is a Backrooms-style breaker box:
+
+- The **MAIN SERVICE** disconnect is centered at the top. It gates every other switch and immediately sends all four wireless links an off signal when opened.
+- Eight left-bank breakers use a left-facing ON position; eight right-bank breakers use a right-facing ON position. They are interactive visual branch breakers only; no output channel mapping has been assigned to them yet.
+- Four offset red arm switches sit at the bottom. Turn on the main service, then turn on all four red switches to unlock the link sequence.
+
+When the main service and all four red arm switches are on, it repeats this cycle indefinitely, with every other link set to `0` while the listed link is set to `15`:
 
 ```text
 Link 1 on for 1 second
@@ -104,7 +112,7 @@ Link 4 on for 5 seconds
 All links off for 10 seconds
 ```
 
-On startup, it first sends all four links an off signal so an old powered state cannot remain active.
+It starts safe: main service off, all red arms off, and all four wireless links explicitly off.
 
 ### Bearing Monitor Controller
 
