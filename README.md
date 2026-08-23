@@ -77,6 +77,35 @@ The controller holds that channel at redstone strength `15` while idle. It remov
 
 Keep the Deployer's hand empty. The controller restores the link to strength `15` after every release and on normal startup.
 
+### Redstone Link Sequencer
+
+Path:
+
+```text
+scripts/redstone-link-sequencer/startup.lua
+```
+
+Use this on a CC:Tweaked computer connected to a Redstone Link Bridge. Configure four ordinary Create Redstone Link receivers with these frequencies:
+
+```text
+Link 1: Red Sandstone + Sandstone
+Link 2: Red Sandstone + Red Sandstone
+Link 3: Sandstone + Red Sandstone
+Link 4: Sandstone + Sandstone
+```
+
+It repeats this cycle indefinitely, with every other link set to `0` while the listed link is set to `15`:
+
+```text
+Link 1 on for 1 second
+Link 2 on for 1 second
+Link 3 on for 1 second
+Link 4 on for 5 seconds
+All links off for 10 seconds
+```
+
+On startup, it first sends all four links an off signal so an old powered state cannot remain active.
+
 ### Bearing Monitor Controller
 
 Path:
@@ -395,6 +424,14 @@ reboot
 ```
 
 Keep `eight_way_staircase_state.txt` during ordinary updates so the controller retains its recorded heading. Only delete it after manually setting the staircase to the configured default heading (SW).
+
+Redstone Link sequencer:
+
+```lua
+delete startup.lua
+wget https://raw.githubusercontent.com/dallen2021/cc-create-plane-controls/main/scripts/redstone-link-sequencer/startup.lua startup.lua
+reboot
+```
 
 Bearing monitor controller:
 
